@@ -17,7 +17,7 @@ azure = ["azure-identity>=1.17,<2", "azure-mgmt-resource>=23,<24"]
 gcp = ["google-auth>=2.29,<3", "google-cloud-resource-manager>=1.12,<2"]
 dev = [
     "build>=1.2,<2",
-    "mypy>=1.10,<2",
+    "mypy>=1.10,<3",
     "pip-audit>=2.7,<3",
     "pytest>=9.0.3,<10",
     "pytest-cov>=5,<6",
