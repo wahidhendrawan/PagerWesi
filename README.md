@@ -1,53 +1,115 @@
-# Automated Hardening Tools (AH)
+# Automation Hardening
 
-This repository contains automated hardening scripts for Linux, Windows, macOS, and Cloud environments (AWS, Azure, GCP).
+Security baseline auditing and controlled remediation for Linux, Windows, macOS, AWS, Azure,
+and GCP. Every entry point defaults to **audit-only** behavior. Review findings and test changes
+in a disposable environment before using apply mode.
 
-## Structure
+## Capabilities
 
-- `linux/`: Bash scripts for Debian/Ubuntu hardening.
-- `windows/`: PowerShell scripts for Windows 10/11/Server hardening.
-- `macos/`: Bash scripts for macOS hardening.
-- `cloud/`: Python-based auditing tool for cloud providers.
+| Target | Audit | Plan | Apply | Machine output |
+|---|---:|---:|---:|---:|
+| Linux | Yes | Yes | Yes | Text |
+| macOS | Yes | Yes | Yes | Text |
+| Windows | Yes | Yes | Yes | JSON |
+| AWS | Yes | Yes | Limited | Text, JSON, SARIF |
+| Azure | Inventory baseline | No changes | No changes | Text, JSON, SARIF |
+| GCP | Inventory baseline | No changes | No changes | Text, JSON, SARIF |
 
-## Usage
+Controls are project baselines inspired by common CIS recommendations. They are **not a claim of
+CIS certification**. See [docs/controls.md](docs/controls.md) for scope and limitations.
 
-### Linux
-Run as root:
+## Cloud CLI
+
+Python 3.10 or newer is required. Install only the providers you use:
+
 ```bash
-sudo bash linux/harden.sh
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -e '.[aws]'
+automation-hardening aws --format text
 ```
-Actions: Updates packages, configures UFW firewall, hardens SSH configuration (disables root login).
 
-### Windows
-Run PowerShell as Administrator:
-```powershell
-.\windows\harden.ps1
-```
-Actions: Enables Firewall, Disables SMBv1, Configures Audit Policies, Disables Guest Account.
+Useful examples:
 
-### macOS
-Run as root:
 ```bash
-sudo bash macos/harden.sh
-```
-Actions: Enables Firewall, Gatekeeper, Auto-updates, Disables Guest Account.
+# Machine-readable report
+automation-hardening aws --format json --output reports/aws.json
 
-### Cloud (AWS/Azure/GCP)
-Prerequisites: Python 3 and dependencies.
-```bash
-pip install -r cloud/requirements.txt
+# One control and a named AWS profile
+automation-hardening aws --control AWS-S3-004 --profile production
+
+# Run regional controls across multiple AWS regions
+automation-hardening aws --regions us-east-1,ap-southeast-1,eu-west-1
+
+# Audit multiple AWS accounts represented by named profiles
+automation-hardening aws --profiles production,security-audit --regions us-east-1,ap-southeast-1
+
+# Preview/apply deterministic AWS remediations
+automation-hardening aws --mode plan
+automation-hardening aws --mode apply --yes
+
+# SARIF for GitHub code scanning ingestion
+automation-hardening aws --format sarif --output reports/aws.sarif
 ```
 
-Run the audit tool:
-```bash
-python3 cloud/main.py [aws|azure|gcp]
-```
-Example:
-```bash
-python3 cloud/main.py aws
-```
-*Note: Currently only the AWS module implements S3 public access checks. Azure/GCP modules are placeholders.*
+Exit codes are `0` for no failed/error findings, `1` for failed controls, and `2` for execution or
+permission errors. AWS also checks root MFA, CloudTrail, Config, GuardDuty, Security Hub, default
+security groups, and KMS rotation. Run regional controls in every governed region. Apply mode
+currently changes S3 Public Access Block, default encryption, and versioning. It does not rewrite
+bucket policies, ACLs, logging architecture, or paid security services.
 
-## Disclaimer
-These scripts are for educational and baseline hardening purposes. Always review the scripts before running them in a production environment.
-**Do not run on critical systems without testing.**
+## Operating Systems
+
+Audit is always the default:
+
+```bash
+sudo bash linux/harden.sh --mode audit
+sudo bash linux/harden.sh --mode plan
+sudo bash linux/harden.sh --mode apply
+
+sudo bash macos/harden.sh --mode audit
+sudo bash macos/harden.sh --mode plan
+sudo bash macos/harden.sh --mode apply
+
+powershell -File windows/harden.ps1 -Mode Audit -OutputPath report.json
+powershell -File windows/harden.ps1 -Mode Plan
+powershell -File windows/harden.ps1 -Mode Apply
+```
+
+Linux apply mode creates a timestamped SSH backup under
+`/var/backups/automation-hardening/`. Restore it with:
+
+```bash
+sudo bash linux/harden.sh --rollback /var/backups/automation-hardening/TIMESTAMP
+```
+
+Linux firewall apply mode permits the service in `ALLOW_SSH` before enabling the firewall. For a
+nonstandard service or rule, set it explicitly and verify the plan first:
+
+```bash
+sudo ALLOW_SSH=OpenSSH bash linux/harden.sh --mode plan
+```
+
+## Development
+
+```bash
+pip install -e '.[dev]'
+make test
+make lint
+make security
+```
+
+CI checks Python 3.10/3.12, Ruff, pytest coverage, ShellCheck, Linux audit/plan smoke tests,
+PowerShell parsing, CodeQL, and pull-request dependency review. Version tags build a GitHub Release
+with Python artifacts, checksums, CycloneDX SBOM, and provenance attestation. See
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Safety
+
+- Use least-privilege read-only cloud credentials for audit mode.
+- Capture backups and test apply mode in a VM or disposable account first.
+- Review network access before enabling a host firewall remotely.
+- Use an approved recovery-key escrow process before enabling FileVault or BitLocker.
+- Treat generated reports as sensitive because they contain resource identifiers and posture data.
+
+This project is provided under the Apache-2.0 license without warranty.
