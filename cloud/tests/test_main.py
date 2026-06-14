@@ -1,42 +1,66 @@
-import sys
-from unittest.mock import patch, MagicMock
-from cloud.main import main
+from argparse import Namespace
+from io import StringIO
+from unittest.mock import MagicMock, patch
 
-def test_main_import_error(capsys):
-    """Test that ImportError is handled when a module is missing."""
-    with patch('sys.argv', ['main.py', 'azure']):
-        # Explicitly mock ImportError for better determinism as suggested in code review
-        with patch('cloud.main.importlib.import_module', side_effect=ImportError("No module named 'azure_harden'")):
-            main()
-            captured = capsys.readouterr()
-            assert "[*] Starting hardening check for AZURE..." in captured.out
-            assert "[!] Could not import module azure_harden. Make sure azure_harden.py exists." in captured.out
+from cloud.core import Finding, Severity, Status
+from cloud.main import load_provider, main, write_report
 
-def test_main_missing_run_audit(capsys):
-    """Test that the case where run_audit is missing from the module is handled."""
-    mock_module = MagicMock(spec=[]) # Ensure it doesn't have run_audit
 
-    with patch('sys.argv', ['main.py', 'aws']):
-        with patch('cloud.main.importlib.import_module', return_value=mock_module):
-            main()
-            captured = capsys.readouterr()
-            assert "[!] Module aws_harden does not have a run_audit function." in captured.out
+def finding(status=Status.PASS):
+    return Finding("TEST-001", "Test control", status, Severity.HIGH, "resource", "evidence")
 
-def test_main_success(capsys):
-    """Test the success path where the module is imported and run_audit is called."""
-    mock_module = MagicMock()
 
-    with patch('sys.argv', ['main.py', 'aws']):
-        with patch('cloud.main.importlib.import_module', return_value=mock_module):
-            main()
-            mock_module.run_audit.assert_called_once()
-            captured = capsys.readouterr()
-            assert "[*] Starting hardening check for AWS..." in captured.out
+def test_main_success():
+    module = MagicMock()
+    module.CONTROL_IDS = set()
+    module.run_audit.return_value = [finding()]
+    with patch("cloud.main.load_provider", return_value=module):
+        assert main(["aws"]) == 0
 
-def test_main_generic_exception(capsys):
-    """Test that generic exceptions during import are handled."""
-    with patch('sys.argv', ['main.py', 'aws']):
-        with patch('cloud.main.importlib.import_module', side_effect=Exception("Unexpected error")):
-            main()
-            captured = capsys.readouterr()
-            assert "[!] Error: Unexpected error" in captured.out
+
+def test_main_returns_failure_exit_code():
+    module = MagicMock()
+    module.CONTROL_IDS = set()
+    module.run_audit.return_value = [finding(Status.FAIL)]
+    with patch("cloud.main.load_provider", return_value=module):
+        assert main(["aws", "--format", "json"]) == 1
+
+
+def test_apply_requires_confirmation():
+    assert main(["aws", "--mode", "apply"]) == 2
+
+
+def test_load_provider_reports_internal_dependency():
+    error = ModuleNotFoundError("missing boto3", name="boto3")
+    with patch("cloud.main.importlib.import_module", side_effect=error):
+        try:
+            load_provider("aws")
+        except RuntimeError as exc:
+            assert "boto3" in str(exc)
+        else:
+            raise AssertionError("RuntimeError was not raised")
+
+
+def test_sarif_report_contains_failed_result():
+    stream = StringIO()
+    write_report([finding(Status.FAIL)], "sarif", stream)
+    assert '"ruleId": "TEST-001"' in stream.getvalue()
+
+
+def test_provider_receives_options():
+    module = MagicMock()
+    module.CONTROL_IDS = {"AWS-S3-001"}
+    module.run_audit.return_value = []
+    with patch("cloud.main.load_provider", return_value=module):
+        assert main(["aws", "--workers", "2", "--control", "AWS-S3-001"]) == 0
+    options: Namespace = module.run_audit.call_args.args[0]
+    assert options.workers == 2
+    assert options.control == ["AWS-S3-001"]
+
+
+def test_unknown_control_is_rejected():
+    module = MagicMock()
+    module.CONTROL_IDS = {"AWS-S3-001"}
+    with patch("cloud.main.load_provider", return_value=module):
+        assert main(["aws", "--control", "NOT-REAL"]) == 2
+    module.run_audit.assert_not_called()

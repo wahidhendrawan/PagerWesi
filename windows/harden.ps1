@@ -1,42 +1,65 @@
-# Windows Hardening Script
-# Run as Administrator
+[CmdletBinding(SupportsShouldProcess = $true)]
+param(
+    [ValidateSet("Audit", "Plan", "Apply")]
+    [string]$Mode = "Audit",
+    [string]$OutputPath
+)
 
-Write-Host "[*] Starting Windows Hardening Process..." -ForegroundColor Cyan
+$ErrorActionPreference = "Stop"
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+    [Security.Principal.WindowsBuiltInRole]::Administrator
+)
+if ($Mode -eq "Apply" -and -not $isAdmin) { throw "Apply mode requires Administrator privileges." }
 
-# 1. Enable Firewall
-Write-Host "[*] Enabling Windows Firewall..."
-Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True
-Write-Host "[+] Firewall enabled for all profiles." -ForegroundColor Green
-
-# 2. Disable SMBv1 (Common vulnerability)
-$Smb1Feature = "SMB1Protocol"
-$EnabledState = "Enabled"
-
-Write-Host "[*] Checking SMBv1 status..."
-$smb1 = Get-WindowsOptionalFeature -Online -FeatureName $Smb1Feature
-if ($smb1.State -eq $EnabledState) {
-    Write-Host "[!] SMBv1 is enabled. Disabling..."
-    Disable-WindowsOptionalFeature -Online -FeatureName $Smb1Feature -NoRestart
-    Write-Host "[+] SMBv1 disabled (Restart required to fully apply)." -ForegroundColor Green
-} else {
-    Write-Host "[+] SMBv1 is already disabled." -ForegroundColor Green
+$results = [System.Collections.Generic.List[object]]::new()
+function Add-Result($Id, $Title, $Status, $Severity, $Evidence, $Remediation = "") {
+    $results.Add([pscustomobject]@{
+        control_id = $Id; title = $Title; status = $Status; severity = $Severity
+        evidence = $Evidence; remediation = $Remediation
+    })
+}
+function Invoke-Change([string]$Description, [scriptblock]$Action) {
+    if ($Mode -eq "Plan") { Write-Host "[PLAN] $Description"; return }
+    if ($Mode -eq "Apply" -and $PSCmdlet.ShouldProcess($env:COMPUTERNAME, $Description)) { & $Action }
 }
 
-# 3. Configure Audit Policies (Basic)
-Write-Host "[*] Configuring Audit Policies..."
-# Note: auditpol requires elevated privileges
-auditpol /set /subcategory:"Logon" /success:enable /failure:enable
-auditpol /set /subcategory:"Process Creation" /success:enable
-Write-Host "[+] Basic audit policies configured." -ForegroundColor Green
+$disabledProfiles = Get-NetFirewallProfile | Where-Object Enabled -eq $false
+Add-Result "WINDOWS-FW-001" "Windows Firewall is enabled" `
+    $(if ($disabledProfiles) { "fail" } else { "pass" }) "high" `
+    "Disabled profiles: $($disabledProfiles.Name -join ', ')" "Enable all firewall profiles."
 
-# 4. Disable Guest Account
-Write-Host "[*] Disabling Guest Account..."
-$guest = Get-LocalUser -Name "Guest" -ErrorAction SilentlyContinue
-if ($guest -and $guest.Enabled) {
-    Disable-LocalUser -Name "Guest"
-    Write-Host "[+] Guest account disabled." -ForegroundColor Green
-} else {
-    Write-Host "[+] Guest account already disabled or not found." -ForegroundColor Green
+$smb = Get-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -ErrorAction SilentlyContinue
+$smbDisabled = -not $smb -or $smb.State -ne "Enabled"
+Add-Result "WINDOWS-SMB-001" "SMBv1 is disabled" $(if ($smbDisabled) { "pass" } else { "fail" }) `
+    "critical" "State=$($smb.State)" "Disable the SMB1Protocol optional feature."
+
+$guest = Get-LocalUser | Where-Object SID -Like "*-501"
+$guestDisabled = -not $guest -or -not $guest.Enabled
+Add-Result "WINDOWS-AUTH-001" "Built-in guest account is disabled" `
+    $(if ($guestDisabled) { "pass" } else { "fail" }) "high" "Enabled=$($guest.Enabled)" `
+    "Disable the account with RID 501."
+
+$logonAudit = auditpol /get /subcategory:"Logon" /r | ConvertFrom-Csv
+$logonValue = ($logonAudit | Select-Object -First 1).'Inclusion Setting'
+$auditEnabled = $logonValue -match "Success" -and $logonValue -match "Failure"
+Add-Result "WINDOWS-AUDIT-001" "Logon success and failure auditing is enabled" `
+    $(if ($auditEnabled) { "pass" } else { "fail" }) "medium" "Setting=$logonValue" `
+    "Enable success and failure auditing for Logon."
+
+if ($Mode -ne "Audit") {
+    Invoke-Change "Enable all Windows Firewall profiles" { Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True }
+    if (-not $smbDisabled) {
+        Invoke-Change "Disable SMBv1" { Disable-WindowsOptionalFeature -Online -FeatureName SMB1Protocol -NoRestart }
+    }
+    if (-not $guestDisabled) {
+        Invoke-Change "Disable built-in guest account" { Disable-LocalUser -SID $guest.SID }
+    }
+    Invoke-Change "Configure advanced audit policy" {
+        auditpol /set /subcategory:"Logon" /success:enable /failure:enable | Out-Null
+        auditpol /set /subcategory:"Process Creation" /success:enable | Out-Null
+    }
 }
 
-Write-Host "[*] Windows Hardening Complete." -ForegroundColor Cyan
+$results | ForEach-Object { Write-Host "[$($_.status.ToUpper())] $($_.control_id) $($_.title): $($_.evidence)" }
+if ($OutputPath) { $results | ConvertTo-Json -Depth 4 | Set-Content -Encoding utf8 $OutputPath }
+if ($results.status -contains "fail") { exit 1 }

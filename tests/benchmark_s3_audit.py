@@ -1,48 +1,47 @@
 import time
-import unittest
-from unittest.mock import MagicMock, patch
-import sys
-import os
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
-# Mock boto3 before importing aws_harden
-mock_boto3 = MagicMock()
-sys.modules['boto3'] = mock_boto3
-mock_botocore = MagicMock()
-sys.modules['botocore'] = mock_botocore
-sys.modules['botocore.exceptions'] = MagicMock()
+from cloud.aws_harden import _check_bucket
 
-# Add the cloud directory to the path
-sys.path.append(os.path.join(os.getcwd(), 'cloud'))
 
-import aws_harden
+def benchmark_bucket_checks(num_buckets=10, delay=0.1):
+    print(f"Benchmarking {num_buckets} buckets with {delay}s simulated latency per API call")
+    s3 = MagicMock()
 
-def benchmark_audit_s3_public_access(num_buckets=10, delay=0.1):
-    print(f"Benchmarking with {num_buckets} buckets and {delay}s delay per call...")
+    def delayed(value):
+        def call(**_kwargs):
+            time.sleep(delay)
+            return value
 
-    # Mock boto3 client
-    mock_s3 = MagicMock()
+        return call
 
-    # Mock list_buckets
-    buckets = [{'Name': f'bucket-{i}'} for i in range(num_buckets)]
-    mock_s3.list_buckets.return_value = {'Buckets': buckets}
+    s3.get_bucket_acl.side_effect = delayed({"Grants": []})
+    s3.get_bucket_policy_status.side_effect = delayed({"PolicyStatus": {"IsPublic": False}})
+    s3.get_public_access_block.side_effect = delayed(
+        {
+            "PublicAccessBlockConfiguration": {
+                "BlockPublicAcls": True,
+                "IgnorePublicAcls": True,
+                "BlockPublicPolicy": True,
+                "RestrictPublicBuckets": True,
+            }
+        }
+    )
+    s3.get_bucket_encryption.side_effect = delayed(
+        {"ServerSideEncryptionConfiguration": {"Rules": [{}]}}
+    )
+    s3.get_bucket_versioning.side_effect = delayed({"Status": "Enabled"})
+    s3.get_bucket_logging.side_effect = delayed({"LoggingEnabled": {"TargetBucket": "logs"}})
+    args = SimpleNamespace(mode="audit", control=[])
 
-    # Mock get_bucket_acl with a delay
-    def mocked_get_bucket_acl(Bucket):
-        time.sleep(delay)
-        return {'Grants': []}
-
-    mock_s3.get_bucket_acl.side_effect = mocked_get_bucket_acl
-
-    # Configure mock_boto3.client to return our mock_s3
-    mock_boto3.client.return_value = mock_s3
-
-    start_time = time.time()
-    aws_harden.audit_s3_public_access()
-    end_time = time.time()
-
-    duration = end_time - start_time
+    started = time.perf_counter()
+    for index in range(num_buckets):
+        _check_bucket(s3, f"bucket-{index}", args)
+    duration = time.perf_counter() - started
     print(f"Total time: {duration:.4f} seconds")
     return duration
 
+
 if __name__ == "__main__":
-    benchmark_audit_s3_public_access()
+    benchmark_bucket_checks()
