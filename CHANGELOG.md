@@ -8,4 +8,5 @@
 - Added authenticated Azure and GCP inventory adapters.
 - Added safer Linux, macOS, and Windows baseline scripts.
 - Added packaging, tests, linting, CI, CodeQL, dependency review, and Dependabot.
-
+- Added multi-region AWS auditing, provider registry, provider tests, Linux smoke tests, and a
+  provenance-attested release workflow.

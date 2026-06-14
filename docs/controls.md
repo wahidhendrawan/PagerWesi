@@ -39,7 +39,8 @@ to an exact licensed benchmark version before this project is used for formal co
 
 ## Known Gaps
 
-- AWS checks use the configured region for regional services. Run the CLI in every governed region.
+- AWS checks support comma-separated named profiles and regions for multi-account, multi-region
+  assessment. Organization role assumption and account discovery are not yet automatic.
 - AWS RDS and organization-wide aggregation controls are not yet implemented.
 - Azure and GCP currently provide authenticated inventory plus explicit manual findings.
 - OS checks cover a high-value baseline, not a complete workstation/server benchmark.

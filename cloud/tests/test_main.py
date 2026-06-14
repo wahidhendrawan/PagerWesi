@@ -56,6 +56,8 @@ def test_provider_receives_options():
     options: Namespace = module.run_audit.call_args.args[0]
     assert options.workers == 2
     assert options.control == ["AWS-S3-001"]
+    assert options.regions is None
+    assert options.profiles is None
 
 
 def test_unknown_control_is_rejected():

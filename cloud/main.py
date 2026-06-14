@@ -11,6 +11,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cloud.core import Finding, exit_code, render_json, render_sarif, render_text
+from cloud.providers import PROVIDERS
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -25,7 +26,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--control", action="append", default=[], help="Run one control ID; repeatable"
     )
     parser.add_argument("--profile", help="AWS named profile")
+    parser.add_argument(
+        "--profiles",
+        help="Comma-separated AWS named profiles for multi-account audit; overrides --profile",
+    )
     parser.add_argument("--region", help="Cloud region override")
+    parser.add_argument(
+        "--regions",
+        help="Comma-separated AWS regions for regional controls; overrides --region",
+    )
     parser.add_argument("--workers", type=int, default=8, help="Maximum parallel checks")
     parser.add_argument(
         "--yes",
@@ -37,7 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def load_provider(name: str):
     try:
-        return importlib.import_module(f"cloud.{name}_harden")
+        return importlib.import_module(PROVIDERS[name])
     except ModuleNotFoundError as exc:
         expected = {f"cloud.{name}_harden", name + "_harden"}
         if exc.name in expected:

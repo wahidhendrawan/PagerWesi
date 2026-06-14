@@ -38,6 +38,12 @@ automation-hardening aws --format json --output reports/aws.json
 # One control and a named AWS profile
 automation-hardening aws --control AWS-S3-004 --profile production
 
+# Run regional controls across multiple AWS regions
+automation-hardening aws --regions us-east-1,ap-southeast-1,eu-west-1
+
+# Audit multiple AWS accounts represented by named profiles
+automation-hardening aws --profiles production,security-audit --regions us-east-1,ap-southeast-1
+
 # Preview/apply deterministic AWS remediations
 automation-hardening aws --mode plan
 automation-hardening aws --mode apply --yes
@@ -93,8 +99,10 @@ make lint
 make security
 ```
 
-CI checks Python 3.10/3.12, Ruff, pytest coverage, ShellCheck, Bash syntax, PowerShell parsing,
-CodeQL, and pull-request dependency review. See [CONTRIBUTING.md](CONTRIBUTING.md).
+CI checks Python 3.10/3.12, Ruff, pytest coverage, ShellCheck, Linux audit/plan smoke tests,
+PowerShell parsing, CodeQL, and pull-request dependency review. Version tags build a GitHub Release
+with Python artifacts, checksums, CycloneDX SBOM, and provenance attestation. See
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Safety
 

@@ -525,21 +525,50 @@ def run_audit(args=None) -> list[Finding]:
     if args is None:
         from types import SimpleNamespace
 
-        args = SimpleNamespace(control=[], profile=None, region=None, workers=8, mode="audit")
+        args = SimpleNamespace(
+            control=[],
+            profile=None,
+            profiles=None,
+            region=None,
+            regions=None,
+            workers=8,
+            mode="audit",
+        )
     try:
         import boto3
     except ImportError as exc:
         raise RuntimeError("Install the AWS dependencies with: pip install -e '.[aws]'") from exc
 
-    session = boto3.Session(profile_name=args.profile, region_name=args.region)
-    sts = session.client("sts")
+    configured_profiles = [
+        item.strip() for item in (getattr(args, "profiles", None) or "").split(",") if item.strip()
+    ]
+    if configured_profiles:
+        findings = []
+        for profile in configured_profiles:
+            profile_args = SimpleNamespace(**vars(args))
+            profile_args.profile = profile
+            profile_args.profiles = None
+            findings.extend(run_audit(profile_args))
+        return sorted(findings, key=lambda item: (item.resource, item.control_id))
+
+    base_session = boto3.Session(profile_name=args.profile, region_name=args.region)
+    sts = base_session.client("sts")
     account_id = sts.get_caller_identity()["Account"]
-    findings = _check_aws_services(session, account_id, args)
+    configured_regions = [
+        item.strip() for item in (getattr(args, "regions", None) or "").split(",") if item.strip()
+    ]
+    regions = configured_regions or [args.region or base_session.region_name or "us-east-1"]
+    findings = []
+    for region in regions:
+        session = boto3.Session(profile_name=args.profile, region_name=region)
+        regional_args = SimpleNamespace(**vars(args))
+        regional_args.region = region
+        findings.extend(_check_aws_services(session, account_id, regional_args))
     s3_selected = not args.control or any(item.startswith("AWS-S3-") for item in args.control)
     if s3_selected:
-        region = args.region or session.region_name or "us-east-1"
-        s3 = session.client("s3", region_name=region)
-        s3control = session.client("s3control", region_name=region)
+        region = regions[0]
+        s3 = base_session.client("s3", region_name=region)
+        s3control = base_session.client("s3control", region_name=region)
         findings.extend(_check_account_public_block(s3control, account_id, args))
         buckets = [item["Name"] for item in s3.list_buckets().get("Buckets", [])]
     else:
