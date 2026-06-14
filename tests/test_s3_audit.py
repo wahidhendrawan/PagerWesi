@@ -1,83 +1,82 @@
-import unittest
-from unittest.mock import MagicMock, patch
-import sys
-import os
-import io
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
-# Mock boto3 before importing aws_harden
-mock_boto3 = MagicMock()
-sys.modules['boto3'] = mock_boto3
-mock_botocore = MagicMock()
-sys.modules['botocore'] = mock_botocore
-sys.modules['botocore.exceptions'] = MagicMock()
-import botocore.exceptions
-sys.modules['botocore.exceptions'].NoCredentialsError = type('NoCredentialsError', (Exception,), {})
-sys.modules['botocore.exceptions'].ClientError = type('ClientError', (Exception,), {})
+from botocore.exceptions import ClientError
 
-# Add the cloud directory to the path
-sys.path.append(os.path.join(os.getcwd(), 'cloud'))
+from cloud.aws_harden import _check_account_public_block, _check_aws_services, _check_bucket
+from cloud.core import Status
 
-import aws_harden
 
-class TestS3Audit(unittest.TestCase):
-    def test_audit_s3_public_access_parity(self):
-        # Mock boto3 client
-        mock_s3 = MagicMock()
+def options(mode="audit", controls=None):
+    return SimpleNamespace(mode=mode, control=controls or [], workers=2, profile=None, region=None)
 
-        # Mock list_buckets
-        buckets = [
-            {'Name': 'public-bucket'},
-            {'Name': 'private-bucket'}
-        ]
-        mock_s3.list_buckets.return_value = {'Buckets': buckets}
 
-        # Mock get_bucket_acl
-        def mocked_get_bucket_acl(Bucket):
-            if Bucket == 'public-bucket':
-                return {
-                    'Grants': [
-                        {
-                            'Grantee': {'URI': 'http://acs.amazonaws.com/groups/global/AllUsers'}
-                        }
-                    ]
-                }
-            else:
-                return {'Grants': []}
+def configured_s3():
+    s3 = MagicMock()
+    s3.get_bucket_acl.return_value = {"Grants": []}
+    s3.get_bucket_policy_status.return_value = {"PolicyStatus": {"IsPublic": False}}
+    s3.get_public_access_block.return_value = {
+        "PublicAccessBlockConfiguration": {
+            "BlockPublicAcls": True,
+            "IgnorePublicAcls": True,
+            "BlockPublicPolicy": True,
+            "RestrictPublicBuckets": True,
+        }
+    }
+    s3.get_bucket_encryption.return_value = {"ServerSideEncryptionConfiguration": {"Rules": [{}]}}
+    s3.get_bucket_versioning.return_value = {"Status": "Enabled"}
+    s3.get_bucket_logging.return_value = {"LoggingEnabled": {"TargetBucket": "logs"}}
+    return s3
 
-        mock_s3.get_bucket_acl.side_effect = mocked_get_bucket_acl
 
-        # Configure mock_boto3.client to return our mock_s3
-        mock_boto3.client.return_value = mock_s3
+def test_compliant_bucket_passes_all_controls():
+    findings = _check_bucket(configured_s3(), "private-bucket", options())
+    assert len(findings) == 6
+    assert all(item.status == Status.PASS for item in findings)
 
-        # Capture output
-        with patch('sys.stdout', new=io.StringIO()) as fake_out:
-            aws_harden.audit_s3_public_access()
-            output = fake_out.getvalue()
 
-        self.assertIn("WARNING: Bucket 'public-bucket' has PUBLIC access!", output)
-        self.assertIn("Bucket 'private-bucket' is private.", output)
-        self.assertEqual(mock_s3.get_bucket_acl.call_count, 2)
+def test_public_acl_is_critical_failure():
+    s3 = configured_s3()
+    s3.get_bucket_acl.return_value = {
+        "Grants": [{"Grantee": {"URI": "http://acs.amazonaws.com/groups/global/AllUsers"}}]
+    }
+    findings = _check_bucket(s3, "public-bucket", options(controls=["AWS-S3-002"]))
+    assert findings[0].status == Status.FAIL
+    assert findings[0].severity.value == "critical"
 
-    def test_audit_s3_public_access_exception_propagation(self):
-        # Mock boto3 client
-        mock_s3 = MagicMock()
 
-        # Mock list_buckets
-        buckets = [{'Name': 'error-bucket'}]
-        mock_s3.list_buckets.return_value = {'Buckets': buckets}
+def test_apply_enables_versioning():
+    s3 = configured_s3()
+    s3.get_bucket_versioning.return_value = {}
+    findings = _check_bucket(s3, "bucket", options("apply", ["AWS-S3-006"]))
+    s3.put_bucket_versioning.assert_called_once()
+    assert findings[0].status == Status.PASS
 
-        # Mock get_bucket_acl to raise an unexpected Exception
-        mock_s3.get_bucket_acl.side_effect = Exception("Unexpected Error")
 
-        # Configure mock_boto3.client to return our mock_s3
-        mock_boto3.client.return_value = mock_s3
+def test_apply_sets_account_public_block():
+    client = MagicMock()
+    client.get_public_access_block.return_value = {"PublicAccessBlockConfiguration": {}}
+    findings = _check_account_public_block(client, "123", options("apply"))
+    client.put_public_access_block.assert_called_once()
+    assert findings[0].status == Status.PASS
 
-        # Capture output
-        with patch('sys.stdout', new=io.StringIO()) as fake_out:
-            aws_harden.audit_s3_public_access()
-            output = fake_out.getvalue()
 
-        self.assertIn("[!] Error: Unexpected Error", output)
+def test_apply_sets_missing_account_public_block():
+    client = MagicMock()
+    client.get_public_access_block.side_effect = ClientError(
+        {"Error": {"Code": "NoSuchPublicAccessBlockConfiguration", "Message": "missing"}},
+        "GetPublicAccessBlock",
+    )
+    findings = _check_account_public_block(client, "123", options("apply"))
+    client.put_public_access_block.assert_called_once()
+    assert findings[0].status == Status.PASS
 
-if __name__ == "__main__":
-    unittest.main()
+
+def test_root_mfa_control_uses_account_summary():
+    iam = MagicMock()
+    iam.get_account_summary.return_value = {"SummaryMap": {"AccountMFAEnabled": 1}}
+    session = MagicMock()
+    session.client.return_value = iam
+    findings = _check_aws_services(session, "123", options(controls=["AWS-IAM-001"]))
+    assert len(findings) == 1
+    assert findings[0].status == Status.PASS
