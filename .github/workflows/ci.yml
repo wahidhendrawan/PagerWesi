@@ -20,7 +20,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e '.[dev]'
+      - run: python -m pip install -e '.[aws,azure,gcp,dev]'
       - run: ruff check .
       - run: pytest --cov=cloud --cov-report=term-missing
       - run: python -m compileall -q cloud tests
