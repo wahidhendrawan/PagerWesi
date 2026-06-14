@@ -43,10 +43,15 @@ def test_guardduty_requires_detector():
 
 def test_kms_rotation_failure_is_reported():
     client = MagicMock()
-    client.list_keys.return_value = {"Keys": [{"KeyId": "key-1"}]}
+    client.get_paginator.return_value.paginate.return_value = [
+        {"Keys": [{"KeyId": "key-1"}]},
+        {"Keys": [{"KeyId": "key-2"}]},
+    ]
     client.describe_key.return_value = {
         "KeyMetadata": {"KeyManager": "CUSTOMER", "KeySpec": "SYMMETRIC_DEFAULT"}
     }
     client.get_key_rotation_status.return_value = {"KeyRotationEnabled": False}
     findings = _check_aws_services(session_with(client), "123", options("AWS-KMS-001"))
     assert findings[0].status == Status.FAIL
+    assert "Eligible=2" in findings[0].evidence
+    client.describe_key.assert_any_call(KeyId="key-2")

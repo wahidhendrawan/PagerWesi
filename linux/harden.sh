@@ -18,6 +18,18 @@ run() {
   fi
 }
 
+configure_firewalld_ssh() {
+  local rule=$ALLOW_SSH
+  if [[ "$rule" == "OpenSSH" ]]; then
+    rule=ssh
+  fi
+  if [[ "$rule" =~ ^[0-9]+/(tcp|udp)$ ]]; then
+    run firewall-cmd --permanent --add-port="$rule"
+  else
+    run firewall-cmd --permanent --add-service="$rule"
+  fi
+}
+
 rollback() {
   local source=$1
   [[ $EUID -eq 0 ]] || { log ERROR "Rollback requires root"; exit 2; }
@@ -97,7 +109,7 @@ if [[ "$MODE" != "audit" ]]; then
     run ufw --force enable
   elif command -v firewall-cmd >/dev/null; then
     run systemctl enable --now firewalld
-    run firewall-cmd --permanent --add-service=ssh
+    configure_firewalld_ssh
     run firewall-cmd --reload
   fi
 

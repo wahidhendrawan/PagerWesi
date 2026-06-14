@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from botocore.exceptions import ClientError
+
 from cloud.aws_harden import _check_account_public_block, _check_aws_services, _check_bucket
 from cloud.core import Status
 
@@ -54,6 +56,17 @@ def test_apply_enables_versioning():
 def test_apply_sets_account_public_block():
     client = MagicMock()
     client.get_public_access_block.return_value = {"PublicAccessBlockConfiguration": {}}
+    findings = _check_account_public_block(client, "123", options("apply"))
+    client.put_public_access_block.assert_called_once()
+    assert findings[0].status == Status.PASS
+
+
+def test_apply_sets_missing_account_public_block():
+    client = MagicMock()
+    client.get_public_access_block.side_effect = ClientError(
+        {"Error": {"Code": "NoSuchPublicAccessBlockConfiguration", "Message": "missing"}},
+        "GetPublicAccessBlock",
+    )
     findings = _check_account_public_block(client, "123", options("apply"))
     client.put_public_access_block.assert_called_once()
     assert findings[0].status == Status.PASS

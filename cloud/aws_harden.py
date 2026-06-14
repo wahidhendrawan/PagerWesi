@@ -51,37 +51,41 @@ def _check_account_public_block(s3control, account_id: str, args) -> list[Findin
         config = s3control.get_public_access_block(AccountId=account_id)[
             "PublicAccessBlockConfiguration"
         ]
-        compliant = all(config.get(key) is True for key in PUBLIC_BLOCK)
-        if not compliant and args.mode == "apply":
-            s3control.put_public_access_block(
-                AccountId=account_id, PublicAccessBlockConfiguration=PUBLIC_BLOCK
-            )
-            config, compliant = PUBLIC_BLOCK, True
-        status = Status.PASS if compliant else Status.FAIL
-        prefix = "Applied; " if args.mode == "apply" and compliant else ""
-        return [
-            _finding(
-                control,
-                "Account-level S3 public access is blocked",
-                status,
-                Severity.HIGH,
-                f"aws:account:{account_id}",
-                prefix + json.dumps(config, sort_keys=True),
-                "Enable all four account-level S3 Public Access Block settings.",
-            )
-        ]
     except Exception as exc:
-        return [
-            _finding(
-                control,
-                "Account-level S3 public access is blocked",
-                Status.ERROR,
-                Severity.HIGH,
-                f"aws:account:{account_id}",
-                _client_error_code(exc),
-                "Grant s3:GetAccountPublicAccessBlock and review the account setting.",
-            )
-        ]
+        code = _client_error_code(exc)
+        if code == "NoSuchPublicAccessBlockConfiguration":
+            config = {}
+        else:
+            return [
+                _finding(
+                    control,
+                    "Account-level S3 public access is blocked",
+                    Status.ERROR,
+                    Severity.HIGH,
+                    f"aws:account:{account_id}",
+                    code,
+                    "Grant s3:GetAccountPublicAccessBlock and review the account setting.",
+                )
+            ]
+    compliant = all(config.get(key) is True for key in PUBLIC_BLOCK)
+    if not compliant and args.mode == "apply":
+        s3control.put_public_access_block(
+            AccountId=account_id, PublicAccessBlockConfiguration=PUBLIC_BLOCK
+        )
+        config, compliant = PUBLIC_BLOCK, True
+    status = Status.PASS if compliant else Status.FAIL
+    prefix = "Applied; " if args.mode == "apply" and compliant else ""
+    return [
+        _finding(
+            control,
+            "Account-level S3 public access is blocked",
+            status,
+            Severity.HIGH,
+            f"aws:account:{account_id}",
+            prefix + json.dumps(config, sort_keys=True),
+            "Enable all four account-level S3 Public Access Block settings.",
+        )
+    ]
 
 
 def _check_bucket(s3, bucket: str, args) -> list[Finding]:
@@ -481,7 +485,8 @@ def _check_aws_services(session, account_id: str, args) -> list[Finding]:
     if _selected(args, "AWS-KMS-001"):
         try:
             client = session.client("kms")
-            keys = client.list_keys().get("Keys", [])
+            pages = client.get_paginator("list_keys").paginate()
+            keys = [key for page in pages for key in page.get("Keys", [])]
             customer_keys = []
             rotation_disabled = []
             for key in keys:
