@@ -1,7 +1,11 @@
-.PHONY: test lint security
+.PHONY: test test-os lint security
 
 test:
 	python -m pytest --cov=cloud --cov-report=term-missing
+
+test-os:
+	bats tests/os/linux_harden.bats
+	pwsh -NoProfile -Command "Invoke-Pester -Path tests/os/windows_harden.Tests.ps1 -CI"
 
 lint:
 	python -m ruff check .

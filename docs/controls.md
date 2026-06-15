@@ -20,8 +20,16 @@ to an exact licensed benchmark version before this project is used for formal co
 | AWS-EC2-001 | AWS region | Remove rules from default security groups | Report only |
 | AWS-KMS-001 | AWS region | Rotate eligible customer-managed keys | Report only |
 | AZURE-IAM-001 | Azure | Discover assessable subscriptions | Report only |
-| AZURE-SEC-001 | Azure | Review Defender for Cloud posture | Manual |
+| AZURE-STORAGE-001 | Azure | Enforce HTTPS and modern TLS for Storage | Report only |
+| AZURE-STORAGE-002 | Azure | Default Storage network access to deny | Report only |
+| AZURE-NET-001 | Azure | Restrict internet-exposed administrative ports | Report only |
+| AZURE-SEC-001 | Azure | Enable Defender for Cloud plans | Report only |
+| AZURE-LOG-001 | Azure | Export subscription activity logs | Report only |
 | GCP-IAM-001 | GCP | Discover assessable projects | Report only |
+| GCP-STORAGE-001 | GCP | Reject public Cloud Storage IAM | Report only |
+| GCP-STORAGE-002 | GCP | Enable uniform bucket-level access | Report only |
+| GCP-NET-001 | GCP | Restrict internet-exposed administrative ports | Report only |
+| GCP-LOG-001 | GCP | Configure centralized logging sinks | Report only |
 | GCP-SEC-001 | GCP | Review Security Command Center posture | Manual |
 | LINUX-FW-001 | Linux | Enable a host firewall | Enables UFW/firewalld |
 | LINUX-SSH-001 | Linux | Disable SSH root login | Updates and validates sshd config |
@@ -39,10 +47,15 @@ to an exact licensed benchmark version before this project is used for formal co
 
 ## Known Gaps
 
-- AWS checks support comma-separated named profiles and regions for multi-account, multi-region
-  assessment. Organization role assumption and account discovery are not yet automatic.
+- AWS checks support named profiles, Organizations account discovery, role assumption, and
+  multi-region assessment.
 - AWS RDS and organization-wide aggregation controls are not yet implemented.
-- Azure and GCP currently provide authenticated inventory plus explicit manual findings.
+- Azure and GCP cover high-value storage, network, monitoring, and logging baselines but do not yet
+  represent complete provider benchmarks.
 - OS checks cover a high-value baseline, not a complete workstation/server benchmark.
 - Linux rollback restores SSH configuration only; package and firewall state require platform-native
   recovery procedures.
+
+Framework relationships are maintained in [compliance-mapping.json](compliance-mapping.json).
+They are informative and must be validated against the exact licensed benchmark and organizational
+scope before being used as compliance evidence.
