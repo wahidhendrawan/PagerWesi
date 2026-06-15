@@ -7,6 +7,7 @@
     "cis": "Applicable CIS Benchmark family; verify exact licensed benchmark version and profile"
   },
   "mappings": {
+    "AWS-ORG-001": {"nist_csf": ["ID.AM"], "iso_27001": ["5.9"], "cis": "AWS Foundations - Inventory"},
     "AWS-IAM-001": {"nist_csf": ["PR.AA"], "iso_27001": ["5.17"], "cis": "AWS Foundations - IAM"},
     "AWS-S3-001": {"nist_csf": ["PR.DS"], "iso_27001": ["8.3", "8.9"], "cis": "AWS Foundations - Storage"},
     "AWS-S3-002": {"nist_csf": ["PR.AA", "PR.DS"], "iso_27001": ["5.15", "8.3"], "cis": "AWS Foundations - Storage"},

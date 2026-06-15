@@ -11,6 +11,7 @@ CONTROL_IDS = {
     "AZURE-LOG-001",
 }
 ADMIN_PORTS = {"22", "3389", "5985", "5986"}
+PUBLIC_SOURCES = {"*", "0.0.0.0/0", "::/0", "internet"}
 
 
 def _finding(control, title, status, severity, resource, evidence, remediation=""):
@@ -19,6 +20,19 @@ def _finding(control, title, status, severity, resource, evidence, remediation="
 
 def _selected(args, control):
     return not args.control or control in args.control
+
+
+def _includes_admin_port(values) -> bool:
+    for value in values:
+        token = str(value).strip()
+        if token == "*" or token in ADMIN_PORTS:
+            return True
+        if "-" in token:
+            start, end = token.split("-", 1)
+            if start.isdigit() and end.isdigit():
+                if any(int(start) <= int(port) <= int(end) for port in ADMIN_PORTS):
+                    return True
+    return False
 
 
 def _subscription_findings(credential, subscription, args):
@@ -69,17 +83,19 @@ def _subscription_findings(credential, subscription, args):
                         )
                     )
         except Exception as exc:
-            findings.append(
-                _finding(
-                    "AZURE-STORAGE-001",
-                    "Storage security settings are assessable",
-                    Status.ERROR,
-                    Severity.HIGH,
-                    root,
-                    type(exc).__name__,
-                    "Grant storage account reader access.",
-                )
-            )
+            for control in ("AZURE-STORAGE-001", "AZURE-STORAGE-002"):
+                if _selected(args, control):
+                    findings.append(
+                        _finding(
+                            control,
+                            "Storage security settings are assessable",
+                            Status.ERROR,
+                            Severity.HIGH,
+                            root,
+                            type(exc).__name__,
+                            "Grant storage account reader access.",
+                        )
+                    )
 
     if _selected(args, "AZURE-NET-001"):
         try:
@@ -89,13 +105,19 @@ def _subscription_findings(credential, subscription, args):
             ).network_security_groups.list_all()
             for group in groups:
                 for rule in getattr(group, "security_rules", []) or []:
-                    source = str(getattr(rule, "source_address_prefix", ""))
-                    port = str(getattr(rule, "destination_port_range", ""))
+                    sources = list(getattr(rule, "source_address_prefixes", []) or [])
+                    source = getattr(rule, "source_address_prefix", None)
+                    if source:
+                        sources.append(source)
+                    ports = list(getattr(rule, "destination_port_ranges", []) or [])
+                    port = getattr(rule, "destination_port_range", None)
+                    if port:
+                        ports.append(port)
                     if (
                         str(getattr(rule, "access", "")).lower() == "allow"
                         and str(getattr(rule, "direction", "")).lower() == "inbound"
-                        and source in {"*", "0.0.0.0/0", "Internet"}
-                        and (port in ADMIN_PORTS or port == "*")
+                        and any(str(item).lower() in PUBLIC_SOURCES for item in sources)
+                        and _includes_admin_port(ports)
                     ):
                         exposed.append(f"{group.name}/{rule.name}")
             findings.append(

@@ -7,6 +7,7 @@ from cloud.core import (
     Status,
     change_manifest,
     exit_code,
+    plan_manifest,
     render_json,
     summarize,
 )
@@ -39,3 +40,23 @@ def test_change_manifest_contains_only_actual_changes(monkeypatch):
     assert manifest["actor"] == "auditor"
     assert manifest["change_count"] == 1
     assert manifest["changes"][0]["control_id"] == "A"
+
+
+def test_plan_manifest_contains_before_and_after(monkeypatch):
+    monkeypatch.delenv("GITHUB_ACTOR", raising=False)
+    monkeypatch.setenv("USER", "planner")
+    finding = Finding(
+        "A",
+        "planned",
+        Status.FAIL,
+        Severity.INFO,
+        "r1",
+        "e",
+        planned=True,
+        before={"enabled": False},
+        after={"enabled": True},
+    )
+    manifest = plan_manifest("aws", [finding])
+    assert manifest["plan_count"] == 1
+    assert manifest["plans"][0]["before"] == {"enabled": False}
+    assert manifest["plans"][0]["after"] == {"enabled": True}

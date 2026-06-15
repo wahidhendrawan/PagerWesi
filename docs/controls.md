@@ -5,6 +5,7 @@ to an exact licensed benchmark version before this project is used for formal co
 
 | ID | Target | Intent | Apply behavior |
 |---|---|---|---|
+| AWS-ORG-001 | AWS account | Confirm each organization member account is assessable | Report only |
 | AWS-S3-001 | AWS account | Block public S3 access at account level | Enables all four settings |
 | AWS-S3-002 | S3 bucket | Reject public ACL grants | Report only |
 | AWS-S3-003 | S3 bucket | Reject public bucket policies | Report only |
@@ -48,7 +49,7 @@ to an exact licensed benchmark version before this project is used for formal co
 ## Known Gaps
 
 - AWS checks support named profiles, Organizations account discovery, role assumption, and
-  multi-region assessment.
+  multi-region assessment. Member-account failures are isolated and reported per account.
 - AWS RDS and organization-wide aggregation controls are not yet implemented.
 - Azure and GCP cover high-value storage, network, monitoring, and logging baselines but do not yet
   represent complete provider benchmarks.
