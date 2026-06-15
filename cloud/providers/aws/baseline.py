@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from types import SimpleNamespace
 
 from cloud.core import Finding, Severity, Status
+from cloud.policy import excluded
 from cloud.providers.aws.organizations import (
     assumed_session,
     discover_active_accounts,
@@ -130,6 +131,21 @@ def _check_account_public_block(s3control, account_id: str, args) -> list[Findin
 def _check_bucket(s3, bucket: str, args) -> list[Finding]:
     findings: list[Finding] = []
     resource = f"arn:aws:s3:::{bucket}"
+    if excluded(args, resource):
+        return [
+            _finding(
+                control,
+                "Resource is excluded by policy",
+                Status.SKIP,
+                Severity.INFO,
+                resource,
+                "Matched exclude_resources policy.",
+            )
+            for control in sorted(CONTROL_IDS)
+            if control.startswith("AWS-S3-")
+            and control != "AWS-S3-001"
+            and _selected(args, control)
+        ]
 
     if _selected(args, "AWS-S3-002"):
         try:

@@ -22,8 +22,13 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e '.[aws,azure,gcp,dev]'
       - run: sudo apt-get update && sudo apt-get install -y shellcheck
-      - run: make test lint security
+      - run: make test typecheck lint security
       - run: python -m build
+      - name: Smoke test built wheel
+        run: |
+          python -m venv /tmp/automation-hardening-release
+          /tmp/automation-hardening-release/bin/pip install dist/*.whl
+          /tmp/automation-hardening-release/bin/automation-hardening --help
       - name: Create checksums
         run: sha256sum dist/* > dist/SHA256SUMS
       - name: Generate SBOM

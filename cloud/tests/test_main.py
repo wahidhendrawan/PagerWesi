@@ -129,3 +129,39 @@ def test_plan_manifest_rejects_audit_mode(tmp_path):
     with patch("cloud.main.load_provider", return_value=module):
         assert main(["aws", "--plan-manifest", str(tmp_path / "plan.json")]) == 2
     module.run_audit.assert_not_called()
+
+
+def test_rollback_requires_confirmation_and_manifest(tmp_path):
+    path = tmp_path / "changes.json"
+    assert main(["aws", "--mode", "rollback", "--rollback-manifest", str(path)]) == 2
+    assert main(["aws", "--mode", "rollback", "--yes"]) == 2
+
+
+def test_rollback_manual_result_is_nonzero(tmp_path):
+    path = tmp_path / "changes.json"
+    path.write_text("{}", encoding="utf-8")
+    finding = Finding(
+        "AWS-S3-006",
+        "manual",
+        Status.MANUAL,
+        Severity.HIGH,
+        "arn:aws:s3:::bucket",
+        "manual",
+    )
+    with (
+        patch("boto3.Session"),
+        patch("cloud.providers.aws.rollback.rollback_manifest", return_value=[finding]),
+    ):
+        assert (
+            main(
+                [
+                    "aws",
+                    "--mode",
+                    "rollback",
+                    "--yes",
+                    "--rollback-manifest",
+                    str(path),
+                ]
+            )
+            == 1
+        )
