@@ -99,3 +99,33 @@ def test_change_manifest_rejects_audit_mode(tmp_path):
     with patch("cloud.main.load_provider", return_value=module):
         assert main(["aws", "--change-manifest", str(tmp_path / "changes.json")]) == 2
     module.run_audit.assert_not_called()
+
+
+def test_plan_writes_plan_manifest(tmp_path):
+    module = MagicMock()
+    module.CONTROL_IDS = set()
+    module.run_audit.return_value = [
+        Finding(
+            "TEST-001",
+            "planned",
+            Status.FAIL,
+            Severity.HIGH,
+            "resource",
+            "evidence",
+            planned=True,
+            before=False,
+            after=True,
+        )
+    ]
+    path = tmp_path / "plan.json"
+    with patch("cloud.main.load_provider", return_value=module):
+        assert main(["aws", "--mode", "plan", "--plan-manifest", str(path)]) == 1
+    assert path.exists()
+
+
+def test_plan_manifest_rejects_audit_mode(tmp_path):
+    module = MagicMock()
+    module.CONTROL_IDS = set()
+    with patch("cloud.main.load_provider", return_value=module):
+        assert main(["aws", "--plan-manifest", str(tmp_path / "plan.json")]) == 2
+    module.run_audit.assert_not_called()

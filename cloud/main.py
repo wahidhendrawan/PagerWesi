@@ -15,6 +15,7 @@ from cloud.core import (
     Finding,
     change_manifest,
     exit_code,
+    plan_manifest,
     render_json,
     render_sarif,
     render_text,
@@ -55,6 +56,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write apply-mode change evidence to a JSON file",
     )
     parser.add_argument(
+        "--plan-manifest",
+        type=Path,
+        help="Write plan-mode before/after evidence to a JSON file",
+    )
+    parser.add_argument(
         "--yes",
         action="store_true",
         help="Acknowledge changes when --mode apply is used",
@@ -86,10 +92,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.change_manifest and args.mode != "apply":
         print("[x] --change-manifest requires --mode apply", file=sys.stderr)
         return 2
+    if args.plan_manifest and args.mode != "plan":
+        print("[x] --plan-manifest requires --mode plan", file=sys.stderr)
+        return 2
 
     try:
         module = load_provider(args.provider)
-        supported = getattr(module, "CONTROL_IDS", set())
+        supported: set[str] = getattr(module, "CONTROL_IDS", set())
         unknown = sorted(set(args.control) - set(supported))
         if unknown:
             raise ValueError(f"Unknown control ID(s) for {args.provider}: {', '.join(unknown)}")
@@ -110,6 +119,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.change_manifest.parent.mkdir(parents=True, exist_ok=True)
         args.change_manifest.write_text(
             json.dumps(change_manifest(args.provider, findings), indent=2) + "\n",
+            encoding="utf-8",
+        )
+    if args.plan_manifest:
+        args.plan_manifest.parent.mkdir(parents=True, exist_ok=True)
+        args.plan_manifest.write_text(
+            json.dumps(plan_manifest(args.provider, findings), indent=2) + "\n",
             encoding="utf-8",
         )
     return exit_code(findings)

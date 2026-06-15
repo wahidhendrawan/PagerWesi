@@ -53,6 +53,16 @@ def test_apply_enables_versioning():
     assert findings[0].status == Status.PASS
 
 
+def test_plan_records_versioning_without_mutation():
+    s3 = configured_s3()
+    s3.get_bucket_versioning.return_value = {}
+    findings = _check_bucket(s3, "bucket", options("plan", ["AWS-S3-006"]))
+    s3.put_bucket_versioning.assert_not_called()
+    assert findings[0].planned is True
+    assert findings[0].before == "Disabled"
+    assert findings[0].after == "Enabled"
+
+
 def test_apply_sets_account_public_block():
     client = MagicMock()
     client.get_public_access_block.return_value = {"PublicAccessBlockConfiguration": {}}

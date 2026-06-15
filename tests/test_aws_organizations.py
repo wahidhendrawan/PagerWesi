@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from cloud.core import Finding, Severity, Status
+from cloud.providers.aws.baseline import _audit_organization_accounts
 from cloud.providers.aws.organizations import (
     assumed_session,
     discover_active_accounts,
@@ -62,3 +64,26 @@ def test_clone_assumed_session_for_region():
         aws_session_token="t",
         region_name="eu-west-1",
     )
+
+
+def test_organization_audit_continues_after_assume_role_failure():
+    args = SimpleNamespace(
+        organization_role="AuditRole", external_id=None, control=[], mode="audit"
+    )
+    successful_session = MagicMock()
+    success = Finding("AWS-IAM-001", "ok", Status.PASS, Severity.INFO, "aws:account:222", "ok")
+    with (
+        patch(
+            "cloud.providers.aws.baseline.discover_active_accounts",
+            return_value=["111", "222"],
+        ),
+        patch(
+            "cloud.providers.aws.baseline.assumed_session",
+            side_effect=[RuntimeError("denied"), successful_session],
+        ),
+    ):
+        findings = _audit_organization_accounts(MagicMock(), args, lambda _: [success])
+    assert [(item.resource, item.status) for item in findings] == [
+        ("aws:account:111", Status.ERROR),
+        ("aws:account:222", Status.PASS),
+    ]

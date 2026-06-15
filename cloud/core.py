@@ -36,6 +36,9 @@ class Finding:
     remediation: str = ""
     benchmark: str = "Project baseline v1"
     changed: bool = False
+    planned: bool = False
+    before: object | None = None
+    after: object | None = None
 
     def to_dict(self) -> dict[str, object]:
         data = asdict(self)
@@ -72,6 +75,18 @@ def change_manifest(provider: str, findings: Iterable[Finding]) -> dict[str, obj
     }
 
 
+def plan_manifest(provider: str, findings: Iterable[Finding]) -> dict[str, object]:
+    plans = [finding.to_dict() for finding in findings if finding.planned]
+    return {
+        "schema_version": "1.0",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "actor": os.getenv("GITHUB_ACTOR") or os.getenv("USER") or "unknown",
+        "provider": provider,
+        "plans": plans,
+        "plan_count": len(plans),
+    }
+
+
 def render_text(findings: list[Finding], stream: TextIO) -> None:
     symbols = {
         Status.PASS: "+",
@@ -86,6 +101,8 @@ def render_text(findings: list[Finding], stream: TextIO) -> None:
             f"{finding.status.value.upper():6} {finding.resource}: {finding.title}\n"
         )
         stream.write(f"    Evidence: {finding.evidence}\n")
+        if finding.planned:
+            stream.write(f"    Planned change: {finding.before!r} -> {finding.after!r}\n")
         if finding.remediation and finding.status != Status.PASS:
             stream.write(f"    Remediation: {finding.remediation}\n")
     counts = summarize(findings)

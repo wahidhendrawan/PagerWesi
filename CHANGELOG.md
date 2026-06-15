@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1 - 2026-06-15
+
+- Added deterministic plan manifests with before/after evidence for AWS remediations.
+- Improved Azure and GCP public administrative-port detection for IPv6, lists, and ranges.
+- Preserved the selected storage control ID when provider API access fails.
+- Isolated AWS Organizations member-account failures so remaining accounts are still assessed.
+
 ## 0.2.0 - 2026-06-14
 
 - Added audit/plan/apply execution modes and safe defaults.

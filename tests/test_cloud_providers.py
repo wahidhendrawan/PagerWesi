@@ -79,6 +79,45 @@ def test_azure_exposed_admin_rule_and_free_defender_fail():
     }
 
 
+def test_azure_detects_multiple_prefixes_and_port_ranges():
+    from cloud.azure_harden import _subscription_findings
+
+    rule = SimpleNamespace(
+        name="management-range",
+        access="Allow",
+        direction="Inbound",
+        source_address_prefixes=["10.0.0.0/8", "::/0"],
+        source_address_prefix=None,
+        destination_port_ranges=["3300-3400"],
+        destination_port_range=None,
+    )
+    network_client = MagicMock()
+    network_client.network_security_groups.list_all.return_value = [
+        SimpleNamespace(name="nsg", security_rules=[rule])
+    ]
+    with patch("azure.mgmt.network.NetworkManagementClient", return_value=network_client):
+        findings = _subscription_findings(
+            MagicMock(),
+            SimpleNamespace(subscription_id="sub-1"),
+            options(["AZURE-NET-001"]),
+        )
+    assert findings[0].status == Status.FAIL
+
+
+def test_azure_storage_error_uses_selected_control_id():
+    from cloud.azure_harden import _subscription_findings
+
+    storage_client = MagicMock()
+    storage_client.storage_accounts.list.side_effect = RuntimeError("denied")
+    with patch("azure.mgmt.storage.StorageManagementClient", return_value=storage_client):
+        findings = _subscription_findings(
+            MagicMock(),
+            SimpleNamespace(subscription_id="sub-1"),
+            options(["AZURE-STORAGE-002"]),
+        )
+    assert [item.control_id for item in findings] == ["AZURE-STORAGE-002"]
+
+
 def test_azure_inventory_and_authentication_error():
     subscription = SimpleNamespace(subscription_id="sub-1", state="Enabled")
     subscriptions = MagicMock()
@@ -157,6 +196,35 @@ def test_gcp_public_bucket_and_firewall_fail():
         "GCP-NET-001",
         "GCP-LOG-001",
     }
+
+
+def test_gcp_detects_ipv6_public_admin_port_range():
+    from cloud.gcp_harden import _project_findings
+
+    firewall = SimpleNamespace(
+        name="rdp-range",
+        source_ranges=["::/0"],
+        allowed=[SimpleNamespace(ports=["3300-3400"], I_p_protocol="tcp")],
+    )
+    compute_client = MagicMock()
+    compute_client.list.return_value = [firewall]
+    with patch("google.cloud.compute_v1.FirewallsClient", return_value=compute_client):
+        findings = _project_findings(
+            MagicMock(), "project-1", "projects/1", options(["GCP-NET-001"])
+        )
+    assert findings[0].status == Status.FAIL
+
+
+def test_gcp_storage_error_uses_selected_control_id():
+    from cloud.gcp_harden import _project_findings
+
+    storage_client = MagicMock()
+    storage_client.list_buckets.side_effect = RuntimeError("denied")
+    with patch("google.cloud.storage.Client", return_value=storage_client):
+        findings = _project_findings(
+            MagicMock(), "project-1", "projects/1", options(["GCP-STORAGE-002"])
+        )
+    assert [item.control_id for item in findings] == ["GCP-STORAGE-002"]
 
 
 def test_gcp_inventory_and_authentication_error():

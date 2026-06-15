@@ -49,7 +49,8 @@ automation-hardening aws --organization-role AutomationHardeningAudit \
   --external-id approved-external-id --regions us-east-1,ap-southeast-1
 
 # Preview/apply deterministic AWS remediations
-automation-hardening aws --mode plan
+automation-hardening aws --mode plan \
+  --plan-manifest reports/aws-plan.json
 automation-hardening aws --mode apply --yes \
   --change-manifest reports/aws-changes.json
 
@@ -63,6 +64,10 @@ security groups, and KMS rotation. Named profiles or AWS Organizations role assu
 multi-account audits. Run regional controls in every governed region. Apply mode currently changes
 S3 Public Access Block, default encryption, and versioning. It does not rewrite bucket policies,
 ACLs, logging architecture, or paid security services.
+
+Plan manifests contain the proposed before/after values and do not call mutation APIs. During
+AWS Organizations audits, an inaccessible member account is reported without stopping assessment
+of the remaining accounts.
 
 Azure audits Storage TLS and network rules, NSG administrative exposure, Defender plans, and
 subscription activity log exports. GCP audits public bucket IAM, uniform bucket access, firewall
