@@ -1,0 +1,7 @@
+version: 1
+network:
+  azure_admin_ports: [22, 3389, 5985, 5986]
+  gcp_admin_ports: [22, 3389]
+exclude_resources:
+  - "arn:aws:s3:::approved-public-assets-*"
+  - "//storage.googleapis.com/approved-public-assets-*"

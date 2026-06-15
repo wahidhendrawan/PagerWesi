@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from cloud.core import Finding, Severity, Status
+from cloud.policy import admin_ports, excluded
 
 CONTROL_IDS = {
     "GCP-IAM-001",
@@ -23,17 +24,17 @@ def _selected(args, control):
     return not args.control or control in args.control
 
 
-def _includes_admin_port(values) -> bool:
+def _includes_admin_port(values, sensitive_ports: set[str]) -> bool:
     if not values:
         return True
     for value in values:
         token = str(value).strip()
-        if token in ADMIN_PORTS:
+        if token in sensitive_ports:
             return True
         if "-" in token:
             start, end = token.split("-", 1)
             if start.isdigit() and end.isdigit():
-                if any(int(start) <= int(port) <= int(end) for port in ADMIN_PORTS):
+                if any(int(start) <= int(port) <= int(end) for port in sensitive_ports):
                     return True
     return False
 
@@ -47,6 +48,20 @@ def _project_findings(credentials, project_id, resource, args):
             buckets = storage.Client(credentials=credentials, project=project_id).list_buckets()
             for bucket in buckets:
                 bucket_resource = f"//storage.googleapis.com/{bucket.name}"
+                if excluded(args, bucket_resource):
+                    for control in ("GCP-STORAGE-001", "GCP-STORAGE-002"):
+                        if _selected(args, control):
+                            findings.append(
+                                _finding(
+                                    control,
+                                    "Resource is excluded by policy",
+                                    Status.SKIP,
+                                    Severity.INFO,
+                                    bucket_resource,
+                                    "Matched exclude_resources policy.",
+                                )
+                            )
+                    continue
                 if _selected(args, "GCP-STORAGE-001"):
                     policy = bucket.get_iam_policy(requested_policy_version=3)
                     public = sorted(
@@ -105,7 +120,7 @@ def _project_findings(credentials, project_id, resource, args):
                     if (
                         sources & PUBLIC_SOURCES
                         and protocol in {"all", "tcp", "6"}
-                        and _includes_admin_port(ports)
+                        and _includes_admin_port(ports, admin_ports(args, "gcp", ADMIN_PORTS))
                     ):
                         exposed.append(firewall.name)
             findings.append(

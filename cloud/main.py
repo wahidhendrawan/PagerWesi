@@ -20,6 +20,7 @@ from cloud.core import (
     render_sarif,
     render_text,
 )
+from cloud.policy import load_policy
 from cloud.providers import PROVIDERS
 
 
@@ -28,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
         description="Audit cloud resources against a security baseline"
     )
     parser.add_argument("provider", choices=["aws", "azure", "gcp"])
-    parser.add_argument("--mode", choices=["audit", "plan", "apply"], default="audit")
+    parser.add_argument("--mode", choices=["audit", "plan", "apply", "rollback"], default="audit")
     parser.add_argument("--format", choices=["text", "json", "sarif"], default="text")
     parser.add_argument("--output", type=Path, help="Write the report to a file")
     parser.add_argument(
@@ -50,6 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Comma-separated AWS regions for regional controls; overrides --region",
     )
     parser.add_argument("--workers", type=int, default=8, help="Maximum parallel checks")
+    parser.add_argument("--policy", type=Path, help="Validated YAML policy overrides")
     parser.add_argument(
         "--change-manifest",
         type=Path,
@@ -61,9 +63,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write plan-mode before/after evidence to a JSON file",
     )
     parser.add_argument(
+        "--rollback-manifest",
+        type=Path,
+        help="Restore supported AWS settings from an apply-mode change manifest",
+    )
+    parser.add_argument(
         "--yes",
         action="store_true",
-        help="Acknowledge changes when --mode apply is used",
+        help="Acknowledge changes when --mode apply or rollback is used",
     )
     return parser
 
@@ -86,8 +93,8 @@ def write_report(findings: list[Finding], report_format: str, stream: TextIO) ->
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    if args.mode == "apply" and not args.yes:
-        print("[x] --mode apply requires --yes", file=sys.stderr)
+    if args.mode in {"apply", "rollback"} and not args.yes:
+        print(f"[x] --mode {args.mode} requires --yes", file=sys.stderr)
         return 2
     if args.change_manifest and args.mode != "apply":
         print("[x] --change-manifest requires --mode apply", file=sys.stderr)
@@ -95,14 +102,29 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.plan_manifest and args.mode != "plan":
         print("[x] --plan-manifest requires --mode plan", file=sys.stderr)
         return 2
+    if (args.mode == "rollback") != bool(args.rollback_manifest):
+        print("[x] --mode rollback requires --rollback-manifest and vice versa", file=sys.stderr)
+        return 2
+    if args.mode == "rollback" and args.provider != "aws":
+        print("[x] rollback is currently supported for AWS only", file=sys.stderr)
+        return 2
 
     try:
-        module = load_provider(args.provider)
-        supported: set[str] = getattr(module, "CONTROL_IDS", set())
-        unknown = sorted(set(args.control) - set(supported))
-        if unknown:
-            raise ValueError(f"Unknown control ID(s) for {args.provider}: {', '.join(unknown)}")
-        findings = module.run_audit(args)
+        args.policy = load_policy(args.policy)
+        if args.mode == "rollback":
+            import boto3
+
+            from cloud.providers.aws.rollback import rollback_manifest
+
+            session = boto3.Session(profile_name=args.profile, region_name=args.region)
+            findings = rollback_manifest(session, args.rollback_manifest)
+        else:
+            module = load_provider(args.provider)
+            supported: set[str] = getattr(module, "CONTROL_IDS", set())
+            unknown = sorted(set(args.control) - set(supported))
+            if unknown:
+                raise ValueError(f"Unknown control ID(s) for {args.provider}: {', '.join(unknown)}")
+            findings = module.run_audit(args)
         if not isinstance(findings, list):
             raise TypeError("provider run_audit() must return a list of Finding objects")
     except Exception as exc:
@@ -127,7 +149,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             json.dumps(plan_manifest(args.provider, findings), indent=2) + "\n",
             encoding="utf-8",
         )
-    return exit_code(findings)
+    code = exit_code(findings)
+    if args.mode == "rollback" and any(item.status.value == "manual" for item in findings):
+        return max(code, 1)
+    return code
 
 
 if __name__ == "__main__":

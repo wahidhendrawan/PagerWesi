@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from cloud.core import Finding, Severity, Status
+from cloud.policy import admin_ports, excluded
 
 CONTROL_IDS = {
     "AZURE-IAM-001",
@@ -22,15 +23,15 @@ def _selected(args, control):
     return not args.control or control in args.control
 
 
-def _includes_admin_port(values) -> bool:
+def _includes_admin_port(values, sensitive_ports: set[str]) -> bool:
     for value in values:
         token = str(value).strip()
-        if token == "*" or token in ADMIN_PORTS:
+        if token == "*" or token in sensitive_ports:
             return True
         if "-" in token:
             start, end = token.split("-", 1)
             if start.isdigit() and end.isdigit():
-                if any(int(start) <= int(port) <= int(end) for port in ADMIN_PORTS):
+                if any(int(start) <= int(port) <= int(end) for port in sensitive_ports):
                     return True
     return False
 
@@ -50,6 +51,20 @@ def _subscription_findings(credential, subscription, args):
             accounts = StorageManagementClient(credential, subscription_id).storage_accounts.list()
             for account in accounts:
                 resource = account.id
+                if excluded(args, resource):
+                    for control in ("AZURE-STORAGE-001", "AZURE-STORAGE-002"):
+                        if _selected(args, control):
+                            findings.append(
+                                _finding(
+                                    control,
+                                    "Resource is excluded by policy",
+                                    Status.SKIP,
+                                    Severity.INFO,
+                                    resource,
+                                    "Matched exclude_resources policy.",
+                                )
+                            )
+                    continue
                 if _selected(args, "AZURE-STORAGE-001"):
                     tls = str(getattr(account, "minimum_tls_version", "unknown"))
                     https = getattr(account, "enable_https_traffic_only", False)
@@ -117,7 +132,7 @@ def _subscription_findings(credential, subscription, args):
                         str(getattr(rule, "access", "")).lower() == "allow"
                         and str(getattr(rule, "direction", "")).lower() == "inbound"
                         and any(str(item).lower() in PUBLIC_SOURCES for item in sources)
-                        and _includes_admin_port(ports)
+                        and _includes_admin_port(ports, admin_ports(args, "azure", ADMIN_PORTS))
                     ):
                         exposed.append(f"{group.name}/{rule.name}")
             findings.append(

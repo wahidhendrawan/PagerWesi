@@ -60,3 +60,9 @@ to an exact licensed benchmark version before this project is used for formal co
 Framework relationships are maintained in [compliance-mapping.json](compliance-mapping.json).
 They are informative and must be validated against the exact licensed benchmark and organizational
 scope before being used as compliance evidence.
+
+## Rollback Boundaries
+
+AWS rollback manifests restore the exact previous Public Access Block and default encryption
+configuration. Enabling S3 versioning is not fully reversible: AWS permits suspension but not a
+return to the original never-enabled state. The tool therefore reports that operation as manual.

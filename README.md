@@ -54,6 +54,13 @@ automation-hardening aws --mode plan \
 automation-hardening aws --mode apply --yes \
   --change-manifest reports/aws-changes.json
 
+# Restore reversible settings from an apply change manifest
+automation-hardening aws --mode rollback --yes \
+  --rollback-manifest reports/aws-changes.json
+
+# Apply validated policy overrides and documented resource exclusions
+automation-hardening aws --policy policy.example.yml
+
 # SARIF for GitHub code scanning ingestion
 automation-hardening aws --format sarif --output reports/aws.sarif
 ```
@@ -68,6 +75,15 @@ ACLs, logging architecture, or paid security services.
 Plan manifests contain the proposed before/after values and do not call mutation APIs. During
 AWS Organizations audits, an inaccessible member account is reported without stopping assessment
 of the remaining accounts.
+
+Rollback restores account/bucket Public Access Block and default encryption from manifest `before`
+values. AWS cannot return a versioned bucket to its never-enabled state, so versioning rollback is
+reported as `MANUAL` with a nonzero exit code. Review the manifest and use least-privilege
+credentials before confirming rollback.
+
+Policy files use `version: 1` and can override Azure/GCP administrative ports or exclude resources
+with shell-style patterns. Exclusions are emitted as `SKIP` findings rather than silently omitted;
+see [policy.example.yml](policy.example.yml).
 
 Azure audits Storage TLS and network rules, NSG administrative exposure, Defender plans, and
 subscription activity log exports. GCP audits public bucket IAM, uniform bucket access, firewall
