@@ -21,6 +21,7 @@ PUBLIC_BLOCK = {
     "RestrictPublicBuckets": True,
 }
 CONTROL_IDS = {
+    "AWS-ORG-001",
     "AWS-S3-001",
     "AWS-S3-002",
     "AWS-S3-003",
@@ -39,10 +40,30 @@ CONTROL_IDS = {
 
 
 def _finding(
-    control_id, title, status, severity, resource, evidence, remediation="", changed=False
+    control_id,
+    title,
+    status,
+    severity,
+    resource,
+    evidence,
+    remediation="",
+    changed=False,
+    planned=False,
+    before=None,
+    after=None,
 ):
     return Finding(
-        control_id, title, status, severity, resource, evidence, remediation, changed=changed
+        control_id,
+        title,
+        status,
+        severity,
+        resource,
+        evidence,
+        remediation,
+        changed=changed,
+        planned=planned,
+        before=before,
+        after=after,
     )
 
 
@@ -79,6 +100,8 @@ def _check_account_public_block(s3control, account_id: str, args) -> list[Findin
                 )
             ]
     compliant = all(config.get(key) is True for key in PUBLIC_BLOCK)
+    before = dict(config)
+    planned = not compliant and args.mode == "plan"
     applied = not compliant and args.mode == "apply"
     if applied:
         s3control.put_public_access_block(
@@ -86,7 +109,7 @@ def _check_account_public_block(s3control, account_id: str, args) -> list[Findin
         )
         config, compliant = PUBLIC_BLOCK, True
     status = Status.PASS if compliant else Status.FAIL
-    prefix = "Applied; " if args.mode == "apply" and compliant else ""
+    prefix = "Applied; " if applied else ""
     return [
         _finding(
             control,
@@ -97,6 +120,9 @@ def _check_account_public_block(s3control, account_id: str, args) -> list[Findin
             prefix + json.dumps(config, sort_keys=True),
             "Enable all four account-level S3 Public Access Block settings.",
             changed=applied,
+            planned=planned,
+            before=before,
+            after=PUBLIC_BLOCK if planned or applied else before,
         )
     ]
 
@@ -180,6 +206,8 @@ def _check_bucket(s3, bucket: str, args) -> list[Finding]:
             read_error = _client_error_code(exc)
         else:
             read_error = ""
+        public_block_before = dict(config)
+        planned = not compliant and args.mode == "plan"
         try:
             if not compliant and args.mode == "apply":
                 s3.put_public_access_block(
@@ -197,6 +225,9 @@ def _check_bucket(s3, bucket: str, args) -> list[Finding]:
                     json.dumps(config, sort_keys=True) if config else read_error,
                     "Enable all four bucket-level S3 Public Access Block settings.",
                     changed=applied,
+                    planned=planned,
+                    before=public_block_before,
+                    after=PUBLIC_BLOCK if planned or applied else public_block_before,
                 )
             )
         except Exception as exc:
@@ -223,18 +254,19 @@ def _check_bucket(s3, bucket: str, args) -> list[Finding]:
             encryption_error = _client_error_code(exc)
         else:
             encryption_error = ""
+        encryption_before = rules if encrypted else None
+        planned = not encrypted and args.mode == "plan"
+        desired_encryption = [
+            {
+                "ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"},
+                "BucketKeyEnabled": True,
+            }
+        ]
         try:
             if not encrypted and args.mode == "apply":
                 s3.put_bucket_encryption(
                     Bucket=bucket,
-                    ServerSideEncryptionConfiguration={
-                        "Rules": [
-                            {
-                                "ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"},
-                                "BucketKeyEnabled": True,
-                            }
-                        ]
-                    },
+                    ServerSideEncryptionConfiguration={"Rules": desired_encryption},
                 )
                 encrypted, encryption_error = True, "Applied AES256 default encryption"
                 applied = True
@@ -248,6 +280,9 @@ def _check_bucket(s3, bucket: str, args) -> list[Finding]:
                     encryption_error or f"Encryption rule count={len(rules)}",
                     "Enable default SSE-S3 or SSE-KMS encryption.",
                     changed=applied,
+                    planned=planned,
+                    before=encryption_before,
+                    after=desired_encryption if planned or applied else encryption_before,
                 )
             )
         except Exception as exc:
@@ -266,6 +301,8 @@ def _check_bucket(s3, bucket: str, args) -> list[Finding]:
         applied = False
         try:
             state = s3.get_bucket_versioning(Bucket=bucket).get("Status", "Disabled")
+            versioning_before = state
+            planned = state != "Enabled" and args.mode == "plan"
             if state != "Enabled" and args.mode == "apply":
                 s3.put_bucket_versioning(
                     Bucket=bucket, VersioningConfiguration={"Status": "Enabled"}
@@ -282,6 +319,9 @@ def _check_bucket(s3, bucket: str, args) -> list[Finding]:
                     f"Versioning={state}",
                     "Enable S3 bucket versioning.",
                     changed=applied,
+                    planned=planned,
+                    before=versioning_before,
+                    after="Enabled" if planned or applied else versioning_before,
                 )
             )
         except Exception as exc:
@@ -325,6 +365,33 @@ def _check_bucket(s3, bucket: str, args) -> list[Finding]:
     return findings
 
 
+def _audit_organization_accounts(base_session, args, audit_runner=None) -> list[Finding]:
+    if audit_runner is None:
+        audit_runner = run_audit
+    findings = []
+    for account_id in discover_active_accounts(base_session):
+        try:
+            account_args = SimpleNamespace(**vars(args))
+            account_args.organization_role = None
+            account_args._session = assumed_session(
+                base_session, account_id, args.organization_role, args.external_id
+            )
+            findings.extend(audit_runner(account_args))
+        except Exception as exc:
+            findings.append(
+                _finding(
+                    "AWS-ORG-001",
+                    "Organization member account can be assessed",
+                    Status.ERROR,
+                    Severity.HIGH,
+                    f"aws:account:{account_id}",
+                    _client_error_code(exc),
+                    "Verify the member-account role trust policy and audit permissions.",
+                )
+            )
+    return sorted(findings, key=lambda item: (item.resource, item.control_id))
+
+
 def run_audit(args=None) -> list[Finding]:
     if args is None:
         args = SimpleNamespace(
@@ -357,15 +424,7 @@ def run_audit(args=None) -> list[Finding]:
 
     base_session = boto3.Session(profile_name=args.profile, region_name=args.region)
     if getattr(args, "organization_role", None):
-        findings = []
-        for account_id in discover_active_accounts(base_session):
-            account_args = SimpleNamespace(**vars(args))
-            account_args.organization_role = None
-            account_args._session = assumed_session(
-                base_session, account_id, args.organization_role, args.external_id
-            )
-            findings.extend(run_audit(account_args))
-        return sorted(findings, key=lambda item: (item.resource, item.control_id))
+        return _audit_organization_accounts(base_session, args)
 
     injected_session = getattr(args, "_session", None)
     if injected_session is not None:

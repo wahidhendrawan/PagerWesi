@@ -12,6 +12,7 @@ CONTROL_IDS = {
 }
 PUBLIC_MEMBERS = {"allUsers", "allAuthenticatedUsers"}
 ADMIN_PORTS = {"22", "3389"}
+PUBLIC_SOURCES = {"0.0.0.0/0", "::/0"}
 
 
 def _finding(control, title, status, severity, resource, evidence, remediation=""):
@@ -20,6 +21,21 @@ def _finding(control, title, status, severity, resource, evidence, remediation="
 
 def _selected(args, control):
     return not args.control or control in args.control
+
+
+def _includes_admin_port(values) -> bool:
+    if not values:
+        return True
+    for value in values:
+        token = str(value).strip()
+        if token in ADMIN_PORTS:
+            return True
+        if "-" in token:
+            start, end = token.split("-", 1)
+            if start.isdigit() and end.isdigit():
+                if any(int(start) <= int(port) <= int(end) for port in ADMIN_PORTS):
+                    return True
+    return False
 
 
 def _project_findings(credentials, project_id, resource, args):
@@ -62,17 +78,19 @@ def _project_findings(credentials, project_id, resource, args):
                         )
                     )
         except Exception as exc:
-            findings.append(
-                _finding(
-                    "GCP-STORAGE-001",
-                    "Cloud Storage security is assessable",
-                    Status.ERROR,
-                    Severity.HIGH,
-                    resource,
-                    type(exc).__name__,
-                    "Grant Storage Viewer access.",
-                )
-            )
+            for control in ("GCP-STORAGE-001", "GCP-STORAGE-002"):
+                if _selected(args, control):
+                    findings.append(
+                        _finding(
+                            control,
+                            "Cloud Storage security is assessable",
+                            Status.ERROR,
+                            Severity.HIGH,
+                            resource,
+                            type(exc).__name__,
+                            "Grant Storage Viewer access.",
+                        )
+                    )
 
     if _selected(args, "GCP-NET-001"):
         try:
@@ -82,8 +100,13 @@ def _project_findings(credentials, project_id, resource, args):
             ):
                 sources = set(getattr(firewall, "source_ranges", []) or [])
                 for allowed in getattr(firewall, "allowed", []) or []:
-                    ports = set(getattr(allowed, "ports", []) or [])
-                    if "0.0.0.0/0" in sources and (not ports or ports & ADMIN_PORTS):
+                    protocol = str(getattr(allowed, "I_p_protocol", "tcp")).lower()
+                    ports = getattr(allowed, "ports", []) or []
+                    if (
+                        sources & PUBLIC_SOURCES
+                        and protocol in {"all", "tcp", "6"}
+                        and _includes_admin_port(ports)
+                    ):
                         exposed.append(firewall.name)
             findings.append(
                 _finding(
