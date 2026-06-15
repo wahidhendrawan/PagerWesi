@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 - 2026-06-15
+
+- Added AWS rollback manifests for reversible S3 Public Access Block and encryption changes.
+- Added explicit manual handling for irreversible S3 versioning transitions.
+- Added validated YAML policy overrides for sensitive ports and resource exclusions.
+- Added rollback and policy contract tests and a clean-wheel release smoke test.
+
 ## 0.2.1 - 2026-06-15
 
 - Added deterministic plan manifests with before/after evidence for AWS remediations.

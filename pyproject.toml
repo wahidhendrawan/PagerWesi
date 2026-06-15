@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "automation-hardening"
-version = "0.2.1"
+version = "0.3.0"
 description = "Cross-platform security baseline auditing and controlled remediation"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
-dependencies = []
+dependencies = ["PyYAML>=6,<7"]
 
 [project.optional-dependencies]
 aws = ["boto3>=1.34,<2"]
@@ -66,5 +66,5 @@ source = ["cloud"]
 fail_under = 80
 
 [[tool.mypy.overrides]]
-module = ["boto3", "boto3.*"]
+module = ["boto3", "boto3.*", "yaml"]
 ignore_missing_imports = true
