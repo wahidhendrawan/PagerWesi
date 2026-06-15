@@ -29,6 +29,7 @@ def test_json_is_machine_readable():
 
 
 def test_change_manifest_contains_only_actual_changes(monkeypatch):
+    monkeypatch.delenv("GITHUB_ACTOR", raising=False)
     monkeypatch.setenv("USER", "auditor")
     findings = [
         Finding("A", "changed", Status.PASS, Severity.INFO, "r1", "e", changed=True),

@@ -185,7 +185,7 @@ def _subscription_findings(credential, subscription, args):
 def run_audit(args) -> list[Finding]:
     try:
         from azure.identity import DefaultAzureCredential
-        from azure.mgmt.resource import SubscriptionClient
+        from azure.mgmt.subscription import SubscriptionClient
     except ImportError as exc:
         raise RuntimeError(
             "Install the Azure dependencies with: pip install -e '.[azure]'"

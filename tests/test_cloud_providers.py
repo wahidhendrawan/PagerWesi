@@ -85,7 +85,7 @@ def test_azure_inventory_and_authentication_error():
     subscriptions.subscriptions.list.return_value = [subscription]
     with (
         patch("azure.identity.DefaultAzureCredential"),
-        patch("azure.mgmt.resource.SubscriptionClient", return_value=subscriptions),
+        patch("azure.mgmt.subscription.SubscriptionClient", return_value=subscriptions),
         patch("cloud.azure_harden._subscription_findings", return_value=[]),
     ):
         from cloud.azure_harden import run_audit
