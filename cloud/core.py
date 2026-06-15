@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 from enum import Enum
 from typing import TextIO
 
@@ -33,8 +35,9 @@ class Finding:
     evidence: str
     remediation: str = ""
     benchmark: str = "Project baseline v1"
+    changed: bool = False
 
-    def to_dict(self) -> dict[str, str]:
+    def to_dict(self) -> dict[str, object]:
         data = asdict(self)
         data["status"] = self.status.value
         data["severity"] = self.severity.value
@@ -55,6 +58,18 @@ def exit_code(findings: Iterable[Finding]) -> int:
     if Status.FAIL in statuses:
         return 1
     return 0
+
+
+def change_manifest(provider: str, findings: Iterable[Finding]) -> dict[str, object]:
+    changes = [finding.to_dict() for finding in findings if finding.changed]
+    return {
+        "schema_version": "1.0",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "actor": os.getenv("GITHUB_ACTOR") or os.getenv("USER") or "unknown",
+        "provider": provider,
+        "changes": changes,
+        "change_count": len(changes),
+    }
 
 
 def render_text(findings: list[Finding], stream: TextIO) -> None:

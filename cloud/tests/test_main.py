@@ -66,3 +66,36 @@ def test_unknown_control_is_rejected():
     with patch("cloud.main.load_provider", return_value=module):
         assert main(["aws", "--control", "NOT-REAL"]) == 2
     module.run_audit.assert_not_called()
+
+
+def test_apply_writes_change_manifest(tmp_path):
+    module = MagicMock()
+    module.CONTROL_IDS = {"TEST-001"}
+    module.run_audit.return_value = [finding()]
+    path = tmp_path / "changes.json"
+    with patch("cloud.main.load_provider", return_value=module):
+        assert (
+            main(
+                [
+                    "aws",
+                    "--mode",
+                    "apply",
+                    "--yes",
+                    "--control",
+                    "TEST-001",
+                    "--change-manifest",
+                    str(path),
+                ]
+            )
+            == 0
+        )
+    assert path.exists()
+
+
+def test_change_manifest_rejects_audit_mode(tmp_path):
+    module = MagicMock()
+    module.CONTROL_IDS = set()
+    module.run_audit.return_value = []
+    with patch("cloud.main.load_provider", return_value=module):
+        assert main(["aws", "--change-manifest", str(tmp_path / "changes.json")]) == 2
+    module.run_audit.assert_not_called()
