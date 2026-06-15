@@ -44,9 +44,14 @@ automation-hardening aws --regions us-east-1,ap-southeast-1,eu-west-1
 # Audit multiple AWS accounts represented by named profiles
 automation-hardening aws --profiles production,security-audit --regions us-east-1,ap-southeast-1
 
+# Discover active AWS Organization accounts and assume a standard audit role
+automation-hardening aws --organization-role AutomationHardeningAudit \
+  --external-id approved-external-id --regions us-east-1,ap-southeast-1
+
 # Preview/apply deterministic AWS remediations
 automation-hardening aws --mode plan
-automation-hardening aws --mode apply --yes
+automation-hardening aws --mode apply --yes \
+  --change-manifest reports/aws-changes.json
 
 # SARIF for GitHub code scanning ingestion
 automation-hardening aws --format sarif --output reports/aws.sarif
@@ -54,9 +59,15 @@ automation-hardening aws --format sarif --output reports/aws.sarif
 
 Exit codes are `0` for no failed/error findings, `1` for failed controls, and `2` for execution or
 permission errors. AWS also checks root MFA, CloudTrail, Config, GuardDuty, Security Hub, default
-security groups, and KMS rotation. Run regional controls in every governed region. Apply mode
-currently changes S3 Public Access Block, default encryption, and versioning. It does not rewrite
-bucket policies, ACLs, logging architecture, or paid security services.
+security groups, and KMS rotation. Named profiles or AWS Organizations role assumption support
+multi-account audits. Run regional controls in every governed region. Apply mode currently changes
+S3 Public Access Block, default encryption, and versioning. It does not rewrite bucket policies,
+ACLs, logging architecture, or paid security services.
+
+Azure audits Storage TLS and network rules, NSG administrative exposure, Defender plans, and
+subscription activity log exports. GCP audits public bucket IAM, uniform bucket access, firewall
+administrative exposure, and logging sinks; Security Command Center remains an organization-level
+manual control.
 
 ## Operating Systems
 
@@ -97,12 +108,17 @@ pip install -e '.[dev]'
 make test
 make lint
 make security
+make test-os
 ```
 
 CI checks Python 3.10/3.12, Ruff, pytest coverage, ShellCheck, Linux audit/plan smoke tests,
 PowerShell parsing, CodeQL, and pull-request dependency review. Version tags build a GitHub Release
 with Python artifacts, checksums, CycloneDX SBOM, and provenance attestation. See
 [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Control relationships to NIST CSF 2.0, ISO/IEC 27001:2022 Annex A, and CIS benchmark families are
+documented in [docs/compliance-mapping.json](docs/compliance-mapping.json). These mappings are
+informative and do not constitute certification.
 
 ## Safety
 

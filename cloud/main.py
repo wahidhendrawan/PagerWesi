@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -10,7 +11,14 @@ from typing import TextIO
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from cloud.core import Finding, exit_code, render_json, render_sarif, render_text
+from cloud.core import (
+    Finding,
+    change_manifest,
+    exit_code,
+    render_json,
+    render_sarif,
+    render_text,
+)
 from cloud.providers import PROVIDERS
 
 
@@ -30,12 +38,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--profiles",
         help="Comma-separated AWS named profiles for multi-account audit; overrides --profile",
     )
+    parser.add_argument(
+        "--organization-role",
+        help="Discover active AWS Organization accounts and assume this role in each account",
+    )
+    parser.add_argument("--external-id", help="External ID used with --organization-role")
     parser.add_argument("--region", help="Cloud region override")
     parser.add_argument(
         "--regions",
         help="Comma-separated AWS regions for regional controls; overrides --region",
     )
     parser.add_argument("--workers", type=int, default=8, help="Maximum parallel checks")
+    parser.add_argument(
+        "--change-manifest",
+        type=Path,
+        help="Write apply-mode change evidence to a JSON file",
+    )
     parser.add_argument(
         "--yes",
         action="store_true",
@@ -65,6 +83,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.mode == "apply" and not args.yes:
         print("[x] --mode apply requires --yes", file=sys.stderr)
         return 2
+    if args.change_manifest and args.mode != "apply":
+        print("[x] --change-manifest requires --mode apply", file=sys.stderr)
+        return 2
 
     try:
         module = load_provider(args.provider)
@@ -85,6 +106,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             write_report(findings, args.format, stream)
     else:
         write_report(findings, args.format, sys.stdout)
+    if args.change_manifest:
+        args.change_manifest.parent.mkdir(parents=True, exist_ok=True)
+        args.change_manifest.write_text(
+            json.dumps(change_manifest(args.provider, findings), indent=2) + "\n",
+            encoding="utf-8",
+        )
     return exit_code(findings)
 
 
