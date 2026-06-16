@@ -4,6 +4,9 @@ Security baseline auditing and controlled remediation for Linux, Windows, macOS,
 and GCP. Every entry point defaults to **audit-only** behavior. Review findings and test changes
 in a disposable environment before using apply mode.
 
+Promotional website assets are available in [docs/index.html](docs/index.html) and can be deployed
+through the included GitHub Pages workflow.
+
 ## Capabilities
 
 | Target | Audit | Plan | Apply | Machine output |
