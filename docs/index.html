@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Automation Hardening membantu tim security menjalankan audit baseline, plan, dan remediation terkontrol untuk Linux, Windows, macOS, AWS, Azure, dan GCP."
+    />
+    <title>Automation Hardening | Security Baseline Automation</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav" aria-label="Navigasi utama">
+        <a class="brand" href="#top" aria-label="Automation Hardening home">
+          <span class="brand-mark">AH</span>
+          <span>Automation Hardening</span>
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
+          Menu
+        </button>
+        <div class="nav-links" id="nav-links">
+          <a href="#capabilities">Kapabilitas</a>
+          <a href="#workflow">Workflow</a>
+          <a href="#controls">Kontrol</a>
+          <a href="#start">Mulai</a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Audit-first security automation</p>
+          <h1>Baseline hardening lintas OS dan cloud tanpa langsung mengubah produksi.</h1>
+          <p class="hero-lead">
+            Automation Hardening membantu tim security, platform, dan compliance menjalankan audit,
+            plan, remediation terbatas, rollback evidence, dan laporan machine-readable untuk
+            Linux, Windows, macOS, AWS, Azure, dan GCP.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#start">Coba sekarang</a>
+            <a class="button secondary" href="https://github.com/wahidhendrawan/Automation-Hardening">
+              Lihat GitHub
+            </a>
+          </div>
+          <div class="trust-row" aria-label="Fitur utama">
+            <span>Audit default</span>
+            <span>Plan manifest</span>
+            <span>Rollback AWS</span>
+            <span>SARIF/JSON</span>
+          </div>
+        </div>
+        <div class="terminal-card" aria-label="Contoh output terminal">
+          <div class="terminal-bar">
+            <span></span><span></span><span></span>
+          </div>
+          <pre><code>$ automation-hardening aws --mode plan \
+  --plan-manifest reports/aws-plan.json
+
+[!] AWS-S3-004 FAIL arn:aws:s3:::example
+    Evidence: NoSuchPublicAccessBlockConfiguration
+    Planned change: {} -> {"BlockPublicAcls": true, ...}
+
+Summary: pass=18, fail=2, error=0, skip=0, manual=0</code></pre>
+        </div>
+      </section>
+
+      <section class="stats" aria-label="Ringkasan cakupan">
+        <div>
+          <strong>6</strong>
+          <span>Target: OS dan cloud</span>
+        </div>
+        <div>
+          <strong>3</strong>
+          <span>Mode: audit, plan, apply</span>
+        </div>
+        <div>
+          <strong>4</strong>
+          <span>Output: text, JSON, SARIF, manifest</span>
+        </div>
+        <div>
+          <strong>0</strong>
+          <span>Mutasi saat audit default</span>
+        </div>
+      </section>
+
+      <section class="section" id="capabilities">
+        <div class="section-heading">
+          <p class="eyebrow">Kapabilitas</p>
+          <h2>Dibuat untuk audit yang aman, evidence yang jelas, dan perubahan yang bisa ditinjau.</h2>
+        </div>
+        <div class="cards">
+          <article class="card">
+            <h3>Cloud posture baseline</h3>
+            <p>
+              AWS, Azure, dan GCP diaudit untuk storage exposure, logging, monitoring, network
+              exposure, dan kontrol security service prioritas tinggi.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Controlled remediation</h3>
+            <p>
+              AWS S3 mendukung apply terbatas untuk Public Access Block, default encryption, dan
+              versioning dengan change manifest untuk bukti perubahan.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Rollback evidence</h3>
+            <p>
+              Rollback AWS memulihkan konfigurasi reversible dari nilai sebelum perubahan. Operasi
+              yang tidak sepenuhnya reversible ditandai manual.
+            </p>
+          </article>
+          <article class="card">
+            <h3>OS hardening scripts</h3>
+            <p>
+              Linux, macOS, dan Windows memiliki mode audit, plan, dan apply untuk baseline firewall,
+              SSH, patching, audit policy, dan kontrol akses umum.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Policy overrides</h3>
+            <p>
+              File YAML tervalidasi mendukung override port administratif dan resource exclusions
+              yang tetap muncul sebagai finding <code>SKIP</code>.
+            </p>
+          </article>
+          <article class="card">
+            <h3>CI and release ready</h3>
+            <p>
+              Ruff, mypy, pytest coverage, ShellCheck, CodeQL, dependency audit, SBOM, checksums,
+              dan provenance attestation dijalankan dalam pipeline.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section split" id="workflow">
+        <div>
+          <p class="eyebrow">Workflow</p>
+          <h2>Mulai dari audit, review rencana, lalu apply hanya bila sudah siap.</h2>
+          <p>
+            Pendekatan default audit-only mengurangi risiko perubahan tidak disengaja. Tim dapat
+            menyimpan report, mengulas rencana, dan menjalankan apply dengan <code>--yes</code>
+            hanya untuk remediation yang deterministik.
+          </p>
+        </div>
+        <ol class="steps">
+          <li>
+            <span>01</span>
+            <div>
+              <h3>Audit</h3>
+              <p>Inventarisasi posture dan ekspor hasil ke text, JSON, atau SARIF.</p>
+            </div>
+          </li>
+          <li>
+            <span>02</span>
+            <div>
+              <h3>Plan</h3>
+              <p>Buat manifest before/after tanpa memanggil API mutasi.</p>
+            </div>
+          </li>
+          <li>
+            <span>03</span>
+            <div>
+              <h3>Apply</h3>
+              <p>Jalankan perubahan terbatas dengan change manifest sebagai bukti.</p>
+            </div>
+          </li>
+          <li>
+            <span>04</span>
+            <div>
+              <h3>Rollback</h3>
+              <p>Pulihkan setting reversible dan tandai batasan manual secara eksplisit.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="section" id="controls">
+        <div class="section-heading">
+          <p class="eyebrow">Cakupan</p>
+          <h2>Kontrol praktis untuk area risiko yang sering muncul.</h2>
+        </div>
+        <div class="feature-grid">
+          <div>
+            <h3>AWS</h3>
+            <p>S3 public access, encryption, versioning, CloudTrail, Config, GuardDuty, Security Hub, KMS, default security groups, Organizations.</p>
+          </div>
+          <div>
+            <h3>Azure</h3>
+            <p>Storage TLS, storage network rules, NSG administrative exposure, Defender plans, subscription activity log export.</p>
+          </div>
+          <div>
+            <h3>GCP</h3>
+            <p>Cloud Storage public IAM, uniform bucket access, firewall exposure, logging sinks, Security Command Center manual posture.</p>
+          </div>
+          <div>
+            <h3>OS</h3>
+            <p>Linux firewall/SSH/patching, macOS firewall/Gatekeeper/FileVault guidance, Windows firewall/SMB/auditing.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section cta" id="start">
+        <div>
+          <p class="eyebrow">Mulai</p>
+          <h2>Pasang provider yang dibutuhkan, lalu jalankan audit pertama.</h2>
+          <pre><code>python3 -m venv .venv
+. .venv/bin/activate
+pip install -e '.[aws]'
+automation-hardening aws --format json --output reports/aws.json</code></pre>
+        </div>
+        <div class="cta-panel">
+          <h3>Gunakan untuk</h3>
+          <ul>
+            <li>Security assessment internal</li>
+            <li>Pre-production guardrail review</li>
+            <li>Evidence untuk remediation workflow</li>
+            <li>SARIF ingestion ke GitHub code scanning</li>
+          </ul>
+          <a class="button primary wide" href="controls.md">Lihat katalog kontrol</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Automation Hardening adalah project baseline internal dan open-source. Mapping compliance
+        bersifat informatif, bukan sertifikasi CIS, ISO, atau NIST.
+      </p>
+      <div>
+        <a href="controls.md">Controls</a>
+        <a href="compliance-mapping.json">Compliance Mapping</a>
+        <a href="https://github.com/wahidhendrawan/Automation-Hardening">GitHub</a>
+      </div>
+    </footer>
+
+    <script src="assets/site.js"></script>
+  </body>
+</html>
