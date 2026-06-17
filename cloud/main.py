@@ -28,7 +28,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Audit cloud resources against a security baseline"
     )
-    parser.add_argument("provider", choices=["aws", "azure", "gcp", "policy"])
+    parser.add_argument(
+        "provider", choices=["aws", "azure", "gcp", "k8s", "all", "policy"]
+    )
     parser.add_argument("policy_action", nargs="?", choices=["validate"])
     parser.add_argument("--mode", choices=["audit", "plan", "apply", "rollback"], default="audit")
     parser.add_argument("--format", choices=["text", "json", "sarif"], default="text")
@@ -129,6 +131,44 @@ def main(argv: Sequence[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 2
+
+    if args.provider == "all":
+        if args.mode in {"apply", "rollback"}:
+            print(
+                "[x] --mode apply/rollback is not supported with"
+                " provider 'all'",
+                file=sys.stderr,
+            )
+            return 2
+        args.policy = load_policy(args.policy)
+        findings: list[Finding] = []
+        for prov in ("aws", "azure", "gcp", "k8s"):
+            try:
+                module = load_provider(prov)
+                result = module.run_audit(args)
+                if isinstance(result, list):
+                    findings.extend(result)
+            except RuntimeError as exc:
+                print(
+                    f"[!] skipping {prov}: {exc}",
+                    file=sys.stderr,
+                )
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            with args.output.open("w", encoding="utf-8") as stream:
+                write_report(findings, args.format, stream)
+        else:
+            write_report(findings, args.format, sys.stdout)
+        if args.plan_manifest:
+            args.plan_manifest.parent.mkdir(parents=True, exist_ok=True)
+            args.plan_manifest.write_text(
+                json.dumps(
+                    plan_manifest("all", findings), indent=2
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+        return exit_code(findings)
 
     try:
         args.policy = load_policy(args.policy)
