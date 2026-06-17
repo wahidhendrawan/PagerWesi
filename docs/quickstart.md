@@ -17,6 +17,18 @@ Install only the provider extras you need:
 pip install -e '.[aws,azure,gcp]'
 ```
 
+## Container
+
+Run without local Python setup:
+
+```bash
+docker pull ghcr.io/wahidhendrawan/automation-hardening:latest
+docker run --rm \
+  -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION \
+  ghcr.io/wahidhendrawan/automation-hardening:latest \
+  aws --format json --output /dev/stdout
+```
+
 ## AWS
 
 ```bash
@@ -29,30 +41,34 @@ automation-hardening aws --mode rollback --yes --rollback-manifest reports/aws-c
 
 AWS checks include S3, organization guardrails, CloudTrail, Config, GuardDuty, Security Hub, default
 security groups, EBS encryption by default, RDS storage encryption, VPC Flow Logs, IAM Access
-Analyzer, and KMS rotation. Apply mode supports reversible S3 settings, EBS encryption by default,
-and IAM Access Analyzer. VPC Flow Logs apply mode requires `aws.vpc_flow_log_destination_arn` in
-the policy file. Rollback remains limited to supported S3 settings.
+Analyzer, and KMS rotation. Apply mode supports S3 settings, EBS encryption by default, IAM Access
+Analyzer, and VPC Flow Logs (with policy destination ARN). Rollback covers all applied changes when
+manifest IDs are present.
 
 ## Azure
 
 ```bash
 az login
 automation-hardening azure --format json --output reports/azure.json
+automation-hardening azure --mode plan --plan-manifest reports/azure-plan.json
 ```
 
 Azure checks include Storage TLS/network rules, Key Vault public access, SQL auditing, NSG
 administrative exposure, Defender plans, activity log export, and subscription diagnostic settings.
+Plan mode generates non-mutating recommendations.
 
 ## GCP
 
 ```bash
 gcloud auth application-default login
 automation-hardening gcp --format json --output reports/gcp.json
+automation-hardening gcp --mode plan --plan-manifest reports/gcp-plan.json
 ```
 
 GCP checks include Cloud Storage public IAM, uniform bucket-level access, service-account
 user-managed keys, Cloud KMS rotation, firewall administrative exposure, centralized logging sinks,
-project audit logging, and Security Command Center manual posture.
+project audit logging, and Security Command Center manual posture. Plan mode generates non-mutating
+recommendations.
 
 ## Policy Validation
 
@@ -62,12 +78,21 @@ automation-hardening aws --policy policy.example.yml
 ```
 
 Policy files can override Azure/GCP administrative ports and mark known resources as excluded.
-Excluded resources are emitted as `SKIP` findings.
-See [policy.schema.json](policy.schema.json) for the reusable policy schema.
+Excluded resources are emitted as `SKIP` findings. Validation uses JSON Schema and reports precise
+error paths. See [policy.schema.json](policy.schema.json) for the reusable policy schema.
 
 ## Permissions
 
 See [provider-permissions.md](provider-permissions.md) for audit and apply permission examples.
+
+## SARIF
+
+```bash
+automation-hardening aws --format sarif --output reports/aws.sarif
+```
+
+SARIF output includes NIST CSF, ISO 27001, and CIS framework tags for each rule, security-severity
+scores, and help URIs linking to the control catalog.
 
 ## Optional LocalStack Contract Test
 
