@@ -30,6 +30,21 @@ def test_apply_requires_confirmation():
     assert main(["aws", "--mode", "apply"]) == 2
 
 
+def test_policy_validate_command_accepts_valid_policy(tmp_path, capsys):
+    path = tmp_path / "policy.yml"
+    path.write_text("version: 1\nnetwork:\n  azure_admin_ports: [22]\n", encoding="utf-8")
+
+    assert main(["policy", "validate", "--policy", str(path)]) == 0
+    assert "policy valid" in capsys.readouterr().out
+
+
+def test_policy_validate_command_rejects_invalid_policy(tmp_path):
+    path = tmp_path / "policy.yml"
+    path.write_text("version: 1\nnetwork:\n  gcp_admin_ports: [ssh]\n", encoding="utf-8")
+
+    assert main(["policy", "validate", "--policy", str(path)]) == 2
+
+
 def test_load_provider_reports_internal_dependency():
     error = ModuleNotFoundError("missing boto3", name="boto3")
     with patch("cloud.main.importlib.import_module", side_effect=error):

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "automation-hardening"
-version = "0.3.0"
+version = "0.3.1"
 description = "Cross-platform security baseline auditing and controlled remediation"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,16 +15,20 @@ dependencies = ["PyYAML>=6,<7"]
 aws = ["boto3>=1.34,<2"]
 azure = [
     "azure-identity>=1.17,<2",
+    "azure-mgmt-keyvault>=10,<11",
     "azure-mgmt-monitor>=7,<8",
     "azure-mgmt-network>=28,<31",
     "azure-mgmt-resource>=23,<26",
     "azure-mgmt-security>=7,<8",
+    "azure-mgmt-sql>=3,<4",
     "azure-mgmt-storage>=22,<24",
     "azure-mgmt-subscription>=3,<4",
 ]
 gcp = [
     "google-auth>=2.29,<3",
     "google-cloud-compute>=1.20,<2",
+    "google-cloud-iam>=2,<3",
+    "google-cloud-kms>=3,<4",
     "google-cloud-logging>=3.10,<4",
     "google-cloud-resource-manager>=1.12,<2",
     "google-cloud-storage>=2.16,<4",
@@ -51,6 +55,9 @@ exclude = ["cloud.tests*"]
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"
 testpaths = ["tests", "cloud/tests"]
+markers = [
+    "integration: optional tests that require external services such as LocalStack",
+]
 
 [tool.ruff]
 line-length = 100
@@ -66,5 +73,5 @@ source = ["cloud"]
 fail_under = 80
 
 [[tool.mypy.overrides]]
-module = ["boto3", "boto3.*", "yaml"]
+module = ["azure.mgmt.*", "boto3", "boto3.*", "google.cloud.*", "yaml"]
 ignore_missing_imports = true

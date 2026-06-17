@@ -7,6 +7,8 @@ in a disposable environment before using apply mode.
 Promotional website assets are available in [docs/index.html](docs/index.html) and can be deployed
 through the included GitHub Pages workflow.
 
+For a short setup path, start with [docs/quickstart.md](docs/quickstart.md).
+
 ## Capabilities
 
 | Target | Audit | Plan | Apply | Machine output |
@@ -62,6 +64,7 @@ automation-hardening aws --mode rollback --yes \
   --rollback-manifest reports/aws-changes.json
 
 # Apply validated policy overrides and documented resource exclusions
+automation-hardening policy validate --policy policy.example.yml
 automation-hardening aws --policy policy.example.yml
 
 # SARIF for GitHub code scanning ingestion
@@ -70,7 +73,8 @@ automation-hardening aws --format sarif --output reports/aws.sarif
 
 Exit codes are `0` for no failed/error findings, `1` for failed controls, and `2` for execution or
 permission errors. AWS also checks root MFA, CloudTrail, Config, GuardDuty, Security Hub, default
-security groups, and KMS rotation. Named profiles or AWS Organizations role assumption support
+security groups, EBS encryption by default, RDS encryption, VPC Flow Logs, IAM Access Analyzer, and
+KMS rotation. Named profiles or AWS Organizations role assumption support
 multi-account audits. Run regional controls in every governed region. Apply mode currently changes
 S3 Public Access Block, default encryption, and versioning. It does not rewrite bucket policies,
 ACLs, logging architecture, or paid security services.
@@ -88,10 +92,11 @@ Policy files use `version: 1` and can override Azure/GCP administrative ports or
 with shell-style patterns. Exclusions are emitted as `SKIP` findings rather than silently omitted;
 see [policy.example.yml](policy.example.yml).
 
-Azure audits Storage TLS and network rules, NSG administrative exposure, Defender plans, and
-subscription activity log exports. GCP audits public bucket IAM, uniform bucket access, firewall
-administrative exposure, and logging sinks; Security Command Center remains an organization-level
-manual control.
+Azure audits Storage TLS and network rules, Key Vault public access, SQL auditing, NSG
+administrative exposure, Defender plans, activity log exports, and diagnostic settings. GCP audits
+public bucket IAM, uniform bucket access, service-account user-managed keys, KMS rotation, firewall
+administrative exposure, logging sinks, and audit logging; Security Command Center remains an
+organization-level manual control.
 
 ## Operating Systems
 

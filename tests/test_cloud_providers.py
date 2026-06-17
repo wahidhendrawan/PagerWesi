@@ -19,6 +19,24 @@ def test_azure_full_subscription_baseline():
     )
     storage_client = MagicMock()
     storage_client.storage_accounts.list.return_value = [account]
+    keyvault_client = MagicMock()
+    keyvault_client.vaults.list.return_value = [
+        SimpleNamespace(
+            name="vault",
+            properties=SimpleNamespace(
+                public_network_access="Disabled",
+                network_acls=SimpleNamespace(default_action="Allow"),
+            ),
+        )
+    ]
+    sql_client = MagicMock()
+    sql_client.servers.list.return_value = [
+        SimpleNamespace(
+            id="/subscriptions/sub-1/resourceGroups/rg/providers/Microsoft.Sql/servers/sql",
+            name="sql",
+        )
+    ]
+    sql_client.server_blob_auditing_policies.get.return_value = SimpleNamespace(state="Enabled")
     network_client = MagicMock()
     network_client.network_security_groups.list_all.return_value = []
     security_client = MagicMock()
@@ -27,17 +45,20 @@ def test_azure_full_subscription_baseline():
     ]
     monitor_client = MagicMock()
     monitor_client.log_profiles.list.return_value = [SimpleNamespace(name="central")]
+    monitor_client.diagnostic_settings.list.return_value = [SimpleNamespace(name="modern")]
     subscription = SimpleNamespace(subscription_id="sub-1")
 
     with (
         patch("azure.mgmt.storage.StorageManagementClient", return_value=storage_client),
+        patch("cloud.azure_harden._key_vault_client", return_value=keyvault_client),
+        patch("cloud.azure_harden._sql_client", return_value=sql_client),
         patch("azure.mgmt.network.NetworkManagementClient", return_value=network_client),
         patch("azure.mgmt.security.SecurityCenter", return_value=security_client),
         patch("azure.mgmt.monitor.MonitorManagementClient", return_value=monitor_client),
     ):
         findings = _subscription_findings(MagicMock(), subscription, options())
 
-    assert len(findings) == 5
+    assert len(findings) == 8
     assert all(item.status == Status.PASS for item in findings)
 
 
@@ -46,6 +67,24 @@ def test_azure_exposed_admin_rule_and_free_defender_fail():
 
     storage_client = MagicMock()
     storage_client.storage_accounts.list.return_value = []
+    keyvault_client = MagicMock()
+    keyvault_client.vaults.list.return_value = [
+        SimpleNamespace(
+            name="vault",
+            properties=SimpleNamespace(
+                public_network_access="Enabled",
+                network_acls=SimpleNamespace(default_action="Allow"),
+            ),
+        )
+    ]
+    sql_client = MagicMock()
+    sql_client.servers.list.return_value = [
+        SimpleNamespace(
+            id="/subscriptions/sub-1/resourceGroups/rg/providers/Microsoft.Sql/servers/sql",
+            name="sql",
+        )
+    ]
+    sql_client.server_blob_auditing_policies.get.return_value = SimpleNamespace(state="Disabled")
     rule = SimpleNamespace(
         name="rdp-public",
         access="Allow",
@@ -62,9 +101,12 @@ def test_azure_exposed_admin_rule_and_free_defender_fail():
     ]
     monitor_client = MagicMock()
     monitor_client.log_profiles.list.return_value = []
+    monitor_client.diagnostic_settings.list.return_value = []
 
     with (
         patch("azure.mgmt.storage.StorageManagementClient", return_value=storage_client),
+        patch("cloud.azure_harden._key_vault_client", return_value=keyvault_client),
+        patch("cloud.azure_harden._sql_client", return_value=sql_client),
         patch("azure.mgmt.network.NetworkManagementClient", return_value=network_client),
         patch("azure.mgmt.security.SecurityCenter", return_value=security_client),
         patch("azure.mgmt.monitor.MonitorManagementClient", return_value=monitor_client),
@@ -73,9 +115,12 @@ def test_azure_exposed_admin_rule_and_free_defender_fail():
             MagicMock(), SimpleNamespace(subscription_id="sub-1"), options()
         )
     assert {item.control_id for item in findings if item.status == Status.FAIL} == {
+        "AZURE-KV-001",
+        "AZURE-SQL-001",
         "AZURE-NET-001",
         "AZURE-SEC-001",
         "AZURE-LOG-001",
+        "AZURE-LOG-002",
     }
 
 
@@ -118,6 +163,20 @@ def test_azure_storage_error_uses_selected_control_id():
     assert [item.control_id for item in findings] == ["AZURE-STORAGE-002"]
 
 
+def test_azure_diagnostic_settings_missing_sdk_operation_is_manual():
+    from cloud.azure_harden import _subscription_findings
+
+    monitor_client = MagicMock()
+    del monitor_client.diagnostic_settings
+    with patch("azure.mgmt.monitor.MonitorManagementClient", return_value=monitor_client):
+        findings = _subscription_findings(
+            MagicMock(),
+            SimpleNamespace(subscription_id="sub-1"),
+            options(["AZURE-LOG-002"]),
+        )
+    assert findings[0].status == Status.MANUAL
+
+
 def test_azure_inventory_and_authentication_error():
     subscription = SimpleNamespace(subscription_id="sub-1", state="Enabled")
     subscriptions = MagicMock()
@@ -151,13 +210,45 @@ def test_gcp_full_project_baseline():
     compute_client.list.return_value = []
     logging_client = MagicMock()
     logging_client.list_sinks.return_value = [SimpleNamespace(name="central")]
+    iam_client = MagicMock()
+    iam_client.list_service_accounts.return_value = [
+        SimpleNamespace(name="sa", email="sa@example.com")
+    ]
+    iam_client.list_service_account_keys.return_value = []
+    kms_client = MagicMock()
+    kms_client.list_locations.return_value = [
+        SimpleNamespace(name="projects/project-1/locations/global")
+    ]
+    kms_client.list_key_rings.return_value = [SimpleNamespace(name="ring")]
+    kms_client.list_crypto_keys.return_value = [
+        SimpleNamespace(name="key", rotation_period=object(), next_rotation_time=object())
+    ]
+    resource_client = MagicMock()
+    resource_client.get_iam_policy.return_value = SimpleNamespace(
+        audit_configs=[
+            SimpleNamespace(
+                service="allServices",
+                audit_log_configs=[
+                    SimpleNamespace(log_type="ADMIN_READ"),
+                    SimpleNamespace(log_type="DATA_READ"),
+                    SimpleNamespace(log_type="DATA_WRITE"),
+                ],
+            )
+        ]
+    )
     with (
         patch("google.cloud.storage.Client", return_value=storage_client),
         patch("google.cloud.compute_v1.FirewallsClient", return_value=compute_client),
         patch("google.cloud.logging_v2.Client", return_value=logging_client),
+        patch("cloud.gcp_harden._iam_client", return_value=iam_client),
+        patch("cloud.gcp_harden._kms_client", return_value=kms_client),
+        patch("google.cloud.resourcemanager_v3.ProjectsClient", return_value=resource_client),
     ):
         findings = _project_findings(MagicMock(), "project-1", "projects/1", options())
     assert [item.status for item in findings] == [
+        Status.PASS,
+        Status.PASS,
+        Status.PASS,
         Status.PASS,
         Status.PASS,
         Status.PASS,
@@ -184,17 +275,38 @@ def test_gcp_public_bucket_and_firewall_fail():
     compute_client.list.return_value = [firewall]
     logging_client = MagicMock()
     logging_client.list_sinks.return_value = []
+    iam_client = MagicMock()
+    iam_client.list_service_accounts.return_value = [
+        SimpleNamespace(name="sa", email="sa@example.com")
+    ]
+    iam_client.list_service_account_keys.return_value = [SimpleNamespace(name="key")]
+    kms_client = MagicMock()
+    kms_client.list_locations.return_value = [
+        SimpleNamespace(name="projects/project-1/locations/global")
+    ]
+    kms_client.list_key_rings.return_value = [SimpleNamespace(name="ring")]
+    kms_client.list_crypto_keys.return_value = [
+        SimpleNamespace(name="key", rotation_period=None, next_rotation_time=None)
+    ]
+    resource_client = MagicMock()
+    resource_client.get_iam_policy.return_value = SimpleNamespace(audit_configs=[])
     with (
         patch("google.cloud.storage.Client", return_value=storage_client),
         patch("google.cloud.compute_v1.FirewallsClient", return_value=compute_client),
         patch("google.cloud.logging_v2.Client", return_value=logging_client),
+        patch("cloud.gcp_harden._iam_client", return_value=iam_client),
+        patch("cloud.gcp_harden._kms_client", return_value=kms_client),
+        patch("google.cloud.resourcemanager_v3.ProjectsClient", return_value=resource_client),
     ):
         findings = _project_findings(MagicMock(), "project-1", "projects/1", options())
     assert {item.control_id for item in findings if item.status == Status.FAIL} == {
+        "GCP-IAM-002",
         "GCP-STORAGE-001",
         "GCP-STORAGE-002",
+        "GCP-KMS-001",
         "GCP-NET-001",
         "GCP-LOG-001",
+        "GCP-LOG-002",
     }
 
 

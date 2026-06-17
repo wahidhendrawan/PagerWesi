@@ -31,11 +31,15 @@ CONTROL_IDS = {
     "AWS-S3-006",
     "AWS-S3-007",
     "AWS-IAM-001",
+    "AWS-IAM-002",
     "AWS-CT-001",
     "AWS-CONFIG-001",
     "AWS-GD-001",
     "AWS-SH-001",
     "AWS-EC2-001",
+    "AWS-EBS-001",
+    "AWS-RDS-001",
+    "AWS-VPC-001",
     "AWS-KMS-001",
 }
 
