@@ -1,0 +1,47 @@
+name: PR Security Audit
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  audit-comment:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e '.[aws,azure,gcp,k8s,dev]'
+      - name: Run audit
+        id: audit
+        continue-on-error: true
+        run: |
+          automation-hardening all --format json --output findings.json || true
+          if [ -f findings.json ]; then
+            FAIL_COUNT=$(python3 -c "
+          import json
+          data = json.load(open('findings.json'))
+          findings = data.get('findings', data) if isinstance(data, dict) else data
+          print(sum(1 for f in findings if f.get('status') == 'fail'))
+          ")
+          else
+            FAIL_COUNT=0
+          fi
+          echo "fail_count=$FAIL_COUNT" >> "$GITHUB_OUTPUT"
+      - name: Post PR comment
+        if: steps.audit.outputs.fail_count != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY="## 🔒 Security Audit: ${{ steps.audit.outputs.fail_count }} finding(s)"
+          gh pr comment ${{ github.event.pull_request.number }} --body "$BODY"

@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "audit",
+      "type": "shell",
+      "command": "automation-hardening all --format json",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "plan",
+      "type": "shell",
+      "command": "automation-hardening plan",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "lint",
+      "type": "shell",
+      "command": "ruff check cloud/",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}
