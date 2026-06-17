@@ -1,0 +1,19 @@
+# Custom Controls Example
+# Place this file and pass --custom-controls path/to/controls.yml
+version: 1
+controls:
+  - id: CUSTOM-DNS-001
+    title: DNS resolver uses internal nameservers
+    target: network
+    severity: medium
+    check: "grep -q 'nameserver 10\\.' /etc/resolv.conf"
+    expect: 0
+    remediation: "Configure /etc/resolv.conf to use internal DNS."
+
+  - id: CUSTOM-NTP-001
+    title: NTP synchronization is active
+    target: time
+    severity: low
+    check: "timedatectl show -p NTPSynchronized --value 2>/dev/null | grep -q yes"
+    expect: 0
+    remediation: "Enable and configure NTP: timedatectl set-ntp true"
