@@ -45,7 +45,8 @@ def test_azure_full_subscription_baseline():
     ]
     monitor_client = MagicMock()
     monitor_client.log_profiles.list.return_value = [SimpleNamespace(name="central")]
-    monitor_client.diagnostic_settings.list.return_value = [SimpleNamespace(name="modern")]
+    arm_client = MagicMock()
+    arm_client.send_request.return_value.json.return_value = {"value": [{"name": "modern"}]}
     subscription = SimpleNamespace(subscription_id="sub-1")
 
     with (
@@ -55,6 +56,7 @@ def test_azure_full_subscription_baseline():
         patch("azure.mgmt.network.NetworkManagementClient", return_value=network_client),
         patch("azure.mgmt.security.SecurityCenter", return_value=security_client),
         patch("azure.mgmt.monitor.MonitorManagementClient", return_value=monitor_client),
+        patch("cloud.azure_harden._azure_arm_client", return_value=arm_client),
     ):
         findings = _subscription_findings(MagicMock(), subscription, options())
 
@@ -101,7 +103,8 @@ def test_azure_exposed_admin_rule_and_free_defender_fail():
     ]
     monitor_client = MagicMock()
     monitor_client.log_profiles.list.return_value = []
-    monitor_client.diagnostic_settings.list.return_value = []
+    arm_client = MagicMock()
+    arm_client.send_request.return_value.json.return_value = {"value": []}
 
     with (
         patch("azure.mgmt.storage.StorageManagementClient", return_value=storage_client),
@@ -110,6 +113,7 @@ def test_azure_exposed_admin_rule_and_free_defender_fail():
         patch("azure.mgmt.network.NetworkManagementClient", return_value=network_client),
         patch("azure.mgmt.security.SecurityCenter", return_value=security_client),
         patch("azure.mgmt.monitor.MonitorManagementClient", return_value=monitor_client),
+        patch("cloud.azure_harden._azure_arm_client", return_value=arm_client),
     ):
         findings = _subscription_findings(
             MagicMock(), SimpleNamespace(subscription_id="sub-1"), options()
@@ -163,18 +167,20 @@ def test_azure_storage_error_uses_selected_control_id():
     assert [item.control_id for item in findings] == ["AZURE-STORAGE-002"]
 
 
-def test_azure_diagnostic_settings_missing_sdk_operation_is_manual():
+def test_azure_diagnostic_settings_uses_arm_rest_api():
     from cloud.azure_harden import _subscription_findings
 
-    monitor_client = MagicMock()
-    del monitor_client.diagnostic_settings
-    with patch("azure.mgmt.monitor.MonitorManagementClient", return_value=monitor_client):
+    arm_client = MagicMock()
+    arm_client.send_request.return_value.json.return_value = {"value": [{"name": "subscription"}]}
+    with patch("cloud.azure_harden._azure_arm_client", return_value=arm_client):
         findings = _subscription_findings(
             MagicMock(),
             SimpleNamespace(subscription_id="sub-1"),
             options(["AZURE-LOG-002"]),
         )
-    assert findings[0].status == Status.MANUAL
+    assert findings[0].status == Status.PASS
+    arm_client.get.assert_called_once()
+    arm_client.send_request.assert_called_once_with(arm_client.get.return_value)
 
 
 def test_azure_inventory_and_authentication_error():

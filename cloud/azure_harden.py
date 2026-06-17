@@ -59,6 +59,24 @@ def _sql_client(credential, subscription_id):
     return SqlManagementClient(credential, subscription_id)
 
 
+def _azure_arm_client(credential):
+    from azure.mgmt.core import ARMPipelineClient
+
+    return ARMPipelineClient("https://management.azure.com", credential=credential)
+
+
+def _subscription_diagnostic_settings(credential, subscription_id: str) -> list[dict]:
+    client = _azure_arm_client(credential)
+    request = client.get(
+        f"/subscriptions/{subscription_id}/providers/Microsoft.Insights/diagnosticSettings",
+        params={"api-version": "2021-05-01-preview"},
+    )
+    response = client.send_request(request)
+    payload = response.json()
+    values = payload.get("value", []) if isinstance(payload, dict) else []
+    return list(values)
+
+
 def _subscription_findings(credential, subscription, args):
     from azure.mgmt.monitor import MonitorManagementClient
     from azure.mgmt.network import NetworkManagementClient
@@ -289,35 +307,19 @@ def _subscription_findings(credential, subscription, args):
 
     if _selected(args, "AZURE-LOG-002"):
         try:
-            client = MonitorManagementClient(credential, subscription_id)
-            operations = getattr(client, "diagnostic_settings", None)
-            if operations is None:
-                findings.append(
-                    _finding(
-                        "AZURE-LOG-002",
-                        "Subscription diagnostic settings use modern export",
-                        Status.MANUAL,
-                        Severity.HIGH,
-                        root,
-                        "diagnostic_settings operation is unavailable in this SDK version",
-                        "Verify Azure Monitor diagnostic settings or policy assignments at "
-                        "subscription scope.",
-                    )
+            settings = _subscription_diagnostic_settings(credential, subscription_id)
+            findings.append(
+                _finding(
+                    "AZURE-LOG-002",
+                    "Subscription diagnostic settings use modern export",
+                    Status.PASS if settings else Status.FAIL,
+                    Severity.HIGH,
+                    root,
+                    f"diagnostic_settings={len(settings)}",
+                    "Configure subscription diagnostic settings to Log Analytics, Event Hub, "
+                    "or Storage.",
                 )
-            else:
-                settings = list(operations.list(root))
-                findings.append(
-                    _finding(
-                        "AZURE-LOG-002",
-                        "Subscription diagnostic settings use modern export",
-                        Status.PASS if settings else Status.FAIL,
-                        Severity.HIGH,
-                        root,
-                        f"diagnostic_settings={len(settings)}",
-                        "Configure subscription diagnostic settings to Log Analytics, Event Hub, "
-                        "or Storage.",
-                    )
-                )
+            )
         except Exception as exc:
             findings.append(
                 _finding(

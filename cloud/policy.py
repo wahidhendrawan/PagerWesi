@@ -15,13 +15,20 @@ def load_policy(path: Path | None) -> dict:
     document = yaml.safe_load(content)
     if not isinstance(document, dict) or document.get("version") != 1:
         raise ValueError("Policy must be a mapping with version: 1")
-    unknown = set(document) - {"version", "network", "exclude_resources"}
+    unknown = set(document) - {"version", "network", "aws", "exclude_resources"}
     if unknown:
         raise ValueError(f"Unknown policy key(s): {', '.join(sorted(unknown))}")
     network = document.get("network", {})
+    aws = document.get("aws", {})
     exclusions = document.get("exclude_resources", [])
-    if not isinstance(network, dict) or not isinstance(exclusions, list):
-        raise ValueError("Policy network must be a mapping and exclude_resources must be a list")
+    if (
+        not isinstance(network, dict)
+        or not isinstance(aws, dict)
+        or not isinstance(exclusions, list)
+    ):
+        raise ValueError(
+            "Policy network and aws must be mappings and exclude_resources must be a list"
+        )
     unknown_network = set(network) - {"azure_admin_ports", "gcp_admin_ports"}
     if unknown_network:
         raise ValueError(f"Unknown policy network key(s): {', '.join(sorted(unknown_network))}")
@@ -33,7 +40,20 @@ def load_policy(path: Path | None) -> dict:
             raise ValueError(f"Policy {key} must contain ports from 1 through 65535")
     if any(not isinstance(pattern, str) or not pattern for pattern in exclusions):
         raise ValueError("Policy exclude_resources entries must be non-empty strings")
+    unknown_aws = set(aws) - {"vpc_flow_log_destination_arn", "vpc_flow_log_iam_role_arn"}
+    if unknown_aws:
+        raise ValueError(f"Unknown policy aws key(s): {', '.join(sorted(unknown_aws))}")
+    for key in ("vpc_flow_log_destination_arn", "vpc_flow_log_iam_role_arn"):
+        value = aws.get(key)
+        if value is not None and (not isinstance(value, str) or not value.startswith("arn:")):
+            raise ValueError(f"Policy aws.{key} must be an ARN string")
     return document
+
+
+def aws_setting(args, key: str) -> str | None:
+    policy = getattr(args, "policy", {}) or {}
+    value = policy.get("aws", {}).get(key)
+    return str(value) if value else None
 
 
 def admin_ports(args, provider: str, defaults: set[str]) -> set[str]:
