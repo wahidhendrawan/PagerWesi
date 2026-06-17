@@ -186,7 +186,7 @@ def render_sarif(findings: list[Finding], stream: TextIO) -> None:
                 "tool": {
                     "driver": {
                         "name": "Automation-Hardening",
-                        "version": "0.5.0",
+                        "version": "0.6.0",
                         "informationUri": "https://github.com/wahidhendrawan/Automation-Hardening",
                         "rules": list(rules.values()),
                     }

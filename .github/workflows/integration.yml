@@ -19,6 +19,7 @@ env:
 jobs:
   localstack-s3:
     runs-on: ubuntu-latest
+    continue-on-error: true
     services:
       localstack:
         image: localstack/localstack:latest

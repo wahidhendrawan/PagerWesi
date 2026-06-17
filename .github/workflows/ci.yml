@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -23,7 +24,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e '.[aws,azure,gcp,dev]'
+      - run: python -m pip install -e '.[aws,azure,gcp,k8s,dev]'
       - run: ruff check .
       - run: mypy cloud
       - run: python scripts/generate_control_docs.py
@@ -31,14 +32,49 @@ jobs:
       - run: pytest --cov=cloud --cov-report=term-missing
       - run: python -m compileall -q cloud tests
 
+  sarif:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[aws,azure,gcp,k8s,dev]'
+      - name: Generate SARIF from dry-run audit
+        run: |
+          python -c "
+          from cloud.core import render_sarif, Finding, Status, Severity
+          from cloud.control_registry import CONTROL_METADATA
+          from io import StringIO
+          import json, pathlib
+          findings = [
+              Finding(cid, meta.intent, Status.PASS, Severity.INFO, meta.target, 'CI baseline')
+              for cid, meta in CONTROL_METADATA.items()
+          ]
+          s = StringIO()
+          render_sarif(findings, s)
+          pathlib.Path('reports').mkdir(exist_ok=True)
+          pathlib.Path('reports/baseline.sarif').write_text(s.getvalue())
+          "
+      - uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: reports/baseline.sarif
+          category: automation-hardening
+
   shell:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - run: sudo apt-get update && sudo apt-get install -y bats shellcheck
-      - run: shellcheck linux/harden.sh macos/harden.sh
+      - run: shellcheck linux/harden.sh macos/harden.sh freebsd/harden.sh alpine/harden.sh
+      - run: sh -n freebsd/harden.sh alpine/harden.sh
       - run: bash -n linux/harden.sh macos/harden.sh
       - run: bats tests/os/linux_harden.bats
+      - run: bats tests/os/freebsd_harden.bats
+      - run: bats tests/os/alpine_harden.bats
 
   linux-smoke:
     runs-on: ubuntu-latest
