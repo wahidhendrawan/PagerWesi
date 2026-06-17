@@ -52,7 +52,7 @@ jobs:
             || echo "Issue creation skipped (labels may not exist)"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: drift-report
           path: reports/current.json
