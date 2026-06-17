@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 - 2026-06-17
+
+- Added Kubernetes security controls: NetworkPolicy, RBAC, privileged pods, Pod Security Standards.
+- Added FreeBSD audit/plan/apply script (PF firewall, SSH hardening, security patches).
+- Added Alpine/container OS audit script (non-root user, package audit, read-only fs, shells).
+- Added multi-cloud unified report: `automation-hardening all` runs all providers in one report.
+- Added Azure/GCP plan mode (non-mutating) with plan manifest generation.
+- Added `kubernetes` optional dependency group.
+- Expanded control registry with K8S, FreeBSD, and Alpine controls.
+
 ## 0.4.0 - 2026-06-17
 
 - Removed Node 20 warning by upgrading `actions/setup-python` to v6 across all workflows.

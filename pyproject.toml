@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "automation-hardening"
-version = "0.4.0"
+version = "0.5.0"
 description = "Cross-platform security baseline auditing and controlled remediation"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -41,6 +41,7 @@ dev = [
     "pytest-cov>=5,<8",
     "ruff>=0.5,<1",
 ]
+k8s = ["kubernetes>=29,<32"]
 
 [project.scripts]
 automation-hardening = "cloud.main:main"
@@ -73,5 +74,5 @@ source = ["cloud"]
 fail_under = 80
 
 [[tool.mypy.overrides]]
-module = ["azure.mgmt.*", "boto3", "boto3.*", "google.cloud.*", "yaml", "jsonschema"]
+module = ["azure.mgmt.*", "boto3", "boto3.*", "google.cloud.*", "yaml", "jsonschema", "kubernetes", "kubernetes.*"]
 ignore_missing_imports = true

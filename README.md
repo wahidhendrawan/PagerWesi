@@ -17,9 +17,13 @@ examples are in [docs/provider-permissions.md](docs/provider-permissions.md).
 | Linux | Yes | Yes | Yes | Text |
 | macOS | Yes | Yes | Yes | Text |
 | Windows | Yes | Yes | Yes | JSON |
+| FreeBSD | Yes | Yes | Yes | Text |
+| Alpine/Container | Yes | Yes | Limited | Text |
 | AWS | Yes | Yes | Limited | Text, JSON, SARIF |
 | Azure | Yes | Yes | — | Text, JSON, SARIF |
 | GCP | Yes | Yes | — | Text, JSON, SARIF |
+| Kubernetes | Yes | Yes | — | Text, JSON, SARIF |
+| **All (unified)** | Yes | Yes | — | Text, JSON, SARIF |
 
 Controls are project baselines inspired by common CIS recommendations. They are **not a claim of
 CIS certification**. See [docs/controls.md](docs/controls.md) for scope and limitations.
@@ -119,6 +123,48 @@ docker run --rm \
   ghcr.io/wahidhendrawan/automation-hardening:latest \
   aws --format sarif --output /dev/stdout
 ```
+
+## Kubernetes
+
+```bash
+pip install -e '.[k8s]'
+automation-hardening k8s --format text
+automation-hardening k8s --mode plan --plan-manifest reports/k8s-plan.json
+```
+
+Checks NetworkPolicy coverage, cluster-admin RBAC bindings, privileged pods, and Pod Security
+Standards enforcement. Connects via in-cluster config or `~/.kube/config`.
+
+## Multi-Cloud Unified Report
+
+```bash
+pip install -e '.[aws,azure,gcp,k8s]'
+automation-hardening all --format json --output reports/unified.json
+automation-hardening all --format sarif --output reports/unified.sarif
+```
+
+Runs all available providers sequentially and combines findings into a single report. Unavailable
+providers are skipped gracefully.
+
+## FreeBSD
+
+```bash
+sudo sh freebsd/harden.sh --mode audit
+sudo sh freebsd/harden.sh --mode plan
+sudo sh freebsd/harden.sh --mode apply
+```
+
+Checks PF firewall, SSH root login, empty passwords, and security patches.
+
+## Alpine / Container OS
+
+```bash
+sh alpine/harden.sh --mode audit
+sh alpine/harden.sh --mode plan
+sh alpine/harden.sh --mode apply
+```
+
+Checks non-root user, vulnerable packages, read-only root filesystem, and unnecessary shells.
 
 ## Operating Systems
 
