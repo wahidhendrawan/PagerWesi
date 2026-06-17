@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0 - 2026-06-17
+
+- Fixed Integration workflow to not block PR merges (`continue-on-error: true`).
+- Added `k8s` to CI install extras for full coverage.
+- Added ShellCheck and syntax validation for FreeBSD and Alpine scripts in CI.
+- Added Bats tests for FreeBSD and Alpine scripts.
+- Added K8s integration test workflow with kind cluster.
+- Added Dependabot grouping for k8s, aws, azure, and gcp dependencies.
+- Added SARIF upload to GitHub Security tab on main branch pushes.
+- Added custom control authoring via YAML DSL (`--custom-controls`).
+- Added remediation playbook generation (`--generate-playbook`) for Terraform and CloudFormation.
+- Added scheduled drift detection workflow with automatic issue creation.
+- Added HTML dashboard report format (`--format html`).
+
 ## 0.5.0 - 2026-06-17
 
 - Added Kubernetes security controls: NetworkPolicy, RBAC, privileged pods, Pod Security Standards.

@@ -20,6 +20,7 @@ from cloud.core import (
     render_sarif,
     render_text,
 )
+from cloud.html_report import render_html
 from cloud.policy import load_policy
 from cloud.providers import PROVIDERS
 
@@ -33,10 +34,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("policy_action", nargs="?", choices=["validate"])
     parser.add_argument("--mode", choices=["audit", "plan", "apply", "rollback"], default="audit")
-    parser.add_argument("--format", choices=["text", "json", "sarif"], default="text")
+    parser.add_argument("--format", choices=["text", "json", "sarif", "html"], default="text")
     parser.add_argument("--output", type=Path, help="Write the report to a file")
     parser.add_argument(
         "--control", action="append", default=[], help="Run one control ID; repeatable"
+    )
+    parser.add_argument(
+        "--custom-controls", type=Path, help="YAML file with custom control definitions"
+    )
+    parser.add_argument(
+        "--generate-playbook", type=Path,
+        help="Generate remediation playbook from a plan/change manifest",
+    )
+    parser.add_argument(
+        "--playbook-format", choices=["terraform", "cloudformation"],
+        default="terraform",
     )
     parser.add_argument("--profile", help="AWS named profile")
     parser.add_argument(
@@ -89,9 +101,13 @@ def load_provider(name: str):
 
 
 def write_report(findings: list[Finding], report_format: str, stream: TextIO) -> None:
-    {"text": render_text, "json": render_json, "sarif": render_sarif}[report_format](
-        findings, stream
-    )
+    renderers = {
+        "text": render_text,
+        "json": render_json,
+        "sarif": render_sarif,
+        "html": render_html,
+    }
+    renderers[report_format](findings, stream)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -110,6 +126,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.policy_action:
         print("[x] policy subcommands are only valid with provider 'policy'", file=sys.stderr)
         return 2
+    if args.generate_playbook:
+        from cloud.remediation import generate_playbook
+        output = generate_playbook(args.generate_playbook, args.playbook_format)
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(output, encoding="utf-8")
+        else:
+            sys.stdout.write(output)
+        return 0
     if args.mode in {"apply", "rollback"} and not args.yes:
         print(f"[x] --mode {args.mode} requires --yes", file=sys.stderr)
         return 2
@@ -191,6 +216,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     except Exception as exc:
         print(f"[x] {exc}", file=sys.stderr)
         return 2
+
+    if args.custom_controls:
+        from cloud.custom_controls import run_custom_controls
+        try:
+            findings.extend(run_custom_controls(args.custom_controls, args))
+        except Exception as exc:
+            print(f"[!] custom controls error: {exc}", file=sys.stderr)
 
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

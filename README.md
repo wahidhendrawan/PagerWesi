@@ -198,6 +198,48 @@ nonstandard service or rule, set it explicitly and verify the plan first:
 sudo ALLOW_SSH=OpenSSH bash linux/harden.sh --mode plan
 ```
 
+## Custom Controls
+
+Define your own controls in YAML without forking:
+
+```yaml
+# my-controls.yml
+version: 1
+controls:
+  - id: CUSTOM-DNS-001
+    title: DNS resolver uses internal nameservers
+    check: "grep -q 'nameserver 10\\.' /etc/resolv.conf"
+    severity: medium
+    remediation: "Configure internal DNS in /etc/resolv.conf"
+```
+
+```bash
+automation-hardening aws --custom-controls my-controls.yml
+```
+
+## Remediation Playbooks
+
+Generate Terraform or CloudFormation from plan manifests:
+
+```bash
+automation-hardening aws --generate-playbook reports/plan.json --output remediation.tf
+automation-hardening aws --generate-playbook reports/plan.json \
+  --playbook-format cloudformation --output remediation.yml
+```
+
+## HTML Dashboard
+
+```bash
+automation-hardening all --format html --output reports/dashboard.html
+```
+
+Produces a self-contained HTML file with pass/fail/error statistics and a findings table.
+
+## Drift Detection
+
+A scheduled workflow runs daily, audits all providers, and creates a GitHub Issue if controls
+are failing. See `.github/workflows/drift-detection.yml`.
+
 ## Development
 
 ```bash
