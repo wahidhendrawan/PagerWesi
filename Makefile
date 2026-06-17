@@ -1,4 +1,4 @@
-.PHONY: test test-os typecheck lint security
+.PHONY: test test-os typecheck lint security docs
 
 test:
 	python -m pytest --cov=cloud --cov-report=term-missing
@@ -17,3 +17,6 @@ lint:
 
 security:
 	python -m pip_audit -r requirements.lock
+
+docs:
+	python scripts/generate_control_docs.py

@@ -62,20 +62,37 @@ to an exact licensed benchmark version before this project is used for formal co
 
 ## Known Gaps
 
-- AWS checks support named profiles, Organizations account discovery, role assumption, and
-  multi-region assessment. Member-account failures are isolated and reported per account.
-- Azure and GCP cover high-value storage, network, key management, monitoring, and logging
-  baselines but do not yet represent complete provider benchmarks.
-- OS checks cover a high-value baseline, not a complete workstation/server benchmark.
-- Linux rollback restores SSH configuration only; package and firewall state require platform-native
-  recovery procedures.
+- AWS checks support named profiles, Organizations account discovery,
+  role assumption, and multi-region assessment. Member-account failures
+  are isolated and reported per account.
+- Azure and GCP cover high-value storage, network, key management,
+  monitoring, and logging baselines but do not yet represent complete
+  provider benchmarks.
+- Azure and GCP plan mode generates non-mutating plan manifests with
+  recommended changes. Apply mode is not yet available for these providers.
+- OS checks cover a high-value baseline, not a complete workstation/server
+  benchmark.
+- Linux rollback restores SSH configuration only; package and firewall
+  state require platform-native recovery procedures.
 
-Framework relationships are maintained in [compliance-mapping.json](compliance-mapping.json).
-They are informative and must be validated against the exact licensed benchmark and organizational
-scope before being used as compliance evidence.
+Framework relationships are maintained in
+[compliance-mapping.json](compliance-mapping.json). They are informative
+and must be validated against the exact licensed benchmark and
+organizational scope before being used as compliance evidence.
 
 ## Rollback Boundaries
 
-AWS rollback manifests restore the exact previous Public Access Block and default encryption
-configuration. Enabling S3 versioning is not fully reversible: AWS permits suspension but not a
-return to the original never-enabled state. The tool therefore reports that operation as manual.
+AWS rollback manifests restore supported changes:
+
+| Control | Rollback action |
+|---|---|
+| AWS-S3-001 | Restore or remove account Public Access Block |
+| AWS-S3-004 | Restore or remove bucket Public Access Block |
+| AWS-S3-005 | Restore or remove bucket default encryption |
+| AWS-S3-006 | MANUAL — versioning cannot return to never-enabled state |
+| AWS-EBS-001 | Disable EBS encryption by default if previously disabled |
+| AWS-IAM-002 | Delete tool-created Access Analyzer if previously absent |
+| AWS-VPC-001 | Delete Flow Logs created by the tool when IDs are in manifest |
+
+Review the manifest and use least-privilege credentials before confirming
+rollback.

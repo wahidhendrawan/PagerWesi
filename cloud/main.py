@@ -123,6 +123,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.mode == "rollback" and args.provider != "aws":
         print("[x] rollback is currently supported for AWS only", file=sys.stderr)
         return 2
+    if args.mode == "apply" and args.provider in {"azure", "gcp"}:
+        print(
+            f"[x] apply mode is not yet supported for {args.provider}; use --mode plan",
+            file=sys.stderr,
+        )
+        return 2
 
     try:
         args.policy = load_policy(args.policy)

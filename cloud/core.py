@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TextIO
 
+from cloud.control_registry import CONTROL_METADATA
+
 
 class Status(str, Enum):
     PASS = "pass"
@@ -129,11 +131,43 @@ def render_sarif(findings: list[Finding], stream: TextIO) -> None:
     rules = {}
     results = []
     for finding in findings:
+        metadata = CONTROL_METADATA.get(finding.control_id)
         rules[finding.control_id] = {
             "id": finding.control_id,
-            "name": finding.title,
-            "shortDescription": {"text": finding.title},
-            "help": {"text": finding.remediation or "Review the finding evidence."},
+            "name": metadata.intent if metadata else finding.title,
+            "shortDescription": {"text": metadata.intent if metadata else finding.title},
+            "fullDescription": {
+                "text": (
+                    f"{finding.control_id}: {metadata.intent if metadata else finding.title}. "
+                    f"Apply behavior: {metadata.apply_behavior if metadata else 'N/A'}."
+                )
+            },
+            "help": {
+                "text": finding.remediation or "Review the finding evidence.",
+                "markdown": (
+                    f"**Remediation**: {finding.remediation or 'Review the finding evidence.'}\n\n"
+                    f"See [control catalog]({metadata.help_uri if metadata else 'https://wahidhendrawan.github.io/Automation-Hardening/controls.html'})."
+                ),
+            },
+            "helpUri": (
+                metadata.help_uri
+                if metadata
+                else "https://wahidhendrawan.github.io/Automation-Hardening/controls.html"
+            ),
+            "properties": {
+                "target": metadata.target if metadata else finding.resource.split(":", 1)[0],
+                "benchmark": finding.benchmark,
+                "security-severity": {
+                    Severity.CRITICAL: "9.0",
+                    Severity.HIGH: "7.0",
+                    Severity.MEDIUM: "5.0",
+                    Severity.LOW: "3.0",
+                    Severity.INFO: "1.0",
+                }[finding.severity],
+                "tags": [f"nist-csf/{ref}" for ref in (metadata.nist_csf if metadata else ())]
+                + [f"iso27001/{ref}" for ref in (metadata.iso_27001 if metadata else ())]
+                + ([f"cis/{metadata.cis}"] if metadata else []),
+            },
         }
         if finding.status in {Status.FAIL, Status.ERROR, Status.MANUAL}:
             results.append(
@@ -141,6 +175,7 @@ def render_sarif(findings: list[Finding], stream: TextIO) -> None:
                     "ruleId": finding.control_id,
                     "level": level[finding.severity],
                     "message": {"text": f"{finding.resource}: {finding.evidence}"},
+                    "properties": {"status": finding.status.value},
                 }
             )
     document = {
@@ -148,7 +183,14 @@ def render_sarif(findings: list[Finding], stream: TextIO) -> None:
         "version": "2.1.0",
         "runs": [
             {
-                "tool": {"driver": {"name": "Automation-Hardening", "rules": list(rules.values())}},
+                "tool": {
+                    "driver": {
+                        "name": "Automation-Hardening",
+                        "version": "0.4.0",
+                        "informationUri": "https://github.com/wahidhendrawan/Automation-Hardening",
+                        "rules": list(rules.values()),
+                    }
+                },
                 "results": results,
             }
         ],

@@ -41,8 +41,13 @@ def rollback_manifest(session, path: Path) -> list[Finding]:
     if not isinstance(changes, list):
         raise ValueError("Rollback manifest changes must be a list")
 
-    s3 = session.client("s3")
-    s3control = session.client("s3control")
+    clients: dict = {}
+
+    def client(name: str):
+        if name not in clients:
+            clients[name] = session.client(name)
+        return clients[name]
+
     findings = []
     for change in reversed(changes):
         if not isinstance(change, dict):
@@ -54,19 +59,19 @@ def rollback_manifest(session, path: Path) -> list[Finding]:
                 account_id = resource.rsplit(":", 1)[-1]
                 if not re.fullmatch(r"\d{12}", account_id):
                     raise ValueError("Account-level rollback requires a 12-digit AWS account ID")
-                _restore_public_block(s3control, change, account_id=account_id)
+                _restore_public_block(client("s3control"), change, account_id=account_id)
             elif control == "AWS-S3-004":
-                _restore_public_block(s3, change, bucket=_bucket_name(resource))
+                _restore_public_block(client("s3"), change, bucket=_bucket_name(resource))
             elif control == "AWS-S3-005":
                 bucket = _bucket_name(resource)
                 before = change.get("before")
                 if before:
-                    s3.put_bucket_encryption(
+                    client("s3").put_bucket_encryption(
                         Bucket=bucket,
                         ServerSideEncryptionConfiguration={"Rules": before},
                     )
                 else:
-                    s3.delete_bucket_encryption(Bucket=bucket)
+                    client("s3").delete_bucket_encryption(Bucket=bucket)
             elif control == "AWS-S3-006":
                 findings.append(
                     Finding(
@@ -80,6 +85,54 @@ def rollback_manifest(session, path: Path) -> list[Finding]:
                     )
                 )
                 continue
+            elif control == "AWS-EBS-001":
+                if change.get("before") is False and change.get("after") is True:
+                    client("ec2").disable_ebs_encryption_by_default()
+                else:
+                    findings.append(
+                        Finding(
+                            control,
+                            "EBS encryption rollback is not applicable",
+                            Status.SKIP,
+                            Severity.INFO,
+                            resource,
+                            "Manifest does not describe an EBS encryption enablement.",
+                        )
+                    )
+                    continue
+            elif control == "AWS-IAM-002":
+                analyzer_name = (change.get("after") or {}).get("analyzer_name")
+                if analyzer_name and (change.get("before") or {}).get("active_analyzers") == 0:
+                    client("accessanalyzer").delete_analyzer(analyzerName=analyzer_name)
+                else:
+                    findings.append(
+                        Finding(
+                            control,
+                            "Access Analyzer rollback is not applicable",
+                            Status.SKIP,
+                            Severity.INFO,
+                            resource,
+                            "Manifest does not describe a tool-created analyzer.",
+                        )
+                    )
+                    continue
+            elif control == "AWS-VPC-001":
+                flow_log_ids = (change.get("after") or {}).get("flow_log_ids") or []
+                if flow_log_ids:
+                    client("ec2").delete_flow_logs(FlowLogIds=flow_log_ids)
+                else:
+                    findings.append(
+                        Finding(
+                            control,
+                            "VPC Flow Logs rollback requires manual recovery",
+                            Status.MANUAL,
+                            Severity.MEDIUM,
+                            resource,
+                            "Manifest does not include created flow_log_ids.",
+                            "Delete only the Flow Logs created by the apply operation.",
+                        )
+                    )
+                    continue
             else:
                 findings.append(
                     Finding(
