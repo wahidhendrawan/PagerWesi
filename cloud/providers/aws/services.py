@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from cloud.core import Finding, Severity, Status
+from cloud.policy import aws_setting
 
 
 def _selected(args, control_id):
@@ -11,8 +12,32 @@ def _error_code(exc):
     return getattr(exc, "response", {}).get("Error", {}).get("Code", type(exc).__name__)
 
 
-def _finding(control, title, status, severity, account, evidence, remediation=""):
-    return Finding(control, title, status, severity, account, evidence, remediation)
+def _finding(
+    control,
+    title,
+    status,
+    severity,
+    account,
+    evidence,
+    remediation="",
+    changed=False,
+    planned=False,
+    before=None,
+    after=None,
+):
+    return Finding(
+        control,
+        title,
+        status,
+        severity,
+        account,
+        evidence,
+        remediation,
+        changed=changed,
+        planned=planned,
+        before=before,
+        after=after,
+    )
 
 
 def check_aws_services(session, account_id: str, args) -> list[Finding]:
@@ -177,9 +202,13 @@ def check_aws_services(session, account_id: str, args) -> list[Finding]:
     if _selected(args, "AWS-EBS-001"):
         title = "EBS encryption by default is enabled"
         try:
-            enabled = bool(
-                session.client("ec2").get_ebs_encryption_by_default().get("EbsEncryptionByDefault")
-            )
+            client = session.client("ec2")
+            enabled = bool(client.get_ebs_encryption_by_default().get("EbsEncryptionByDefault"))
+            planned = not enabled and args.mode == "plan"
+            applied = not enabled and args.mode == "apply"
+            if applied:
+                client.enable_ebs_encryption_by_default()
+                enabled = True
             findings.append(
                 _finding(
                     "AWS-EBS-001",
@@ -189,6 +218,10 @@ def check_aws_services(session, account_id: str, args) -> list[Finding]:
                     account,
                     f"ebs_encryption_by_default={enabled}",
                     "Enable EBS encryption by default in every governed region.",
+                    changed=applied,
+                    planned=planned,
+                    before=False if planned or applied else None,
+                    after=True if planned or applied else None,
                 )
             )
         except Exception as exc:
@@ -248,17 +281,55 @@ def check_aws_services(session, account_id: str, args) -> list[Finding]:
             missing = [
                 vpc.get("VpcId", "unknown") for vpc in vpcs if vpc.get("VpcId") not in logged
             ]
-            findings.append(
-                _finding(
-                    "AWS-VPC-001",
-                    title,
-                    Status.PASS if not missing else Status.FAIL,
-                    Severity.MEDIUM,
-                    account,
-                    f"vpcs={len(vpcs)}, missing_flow_logs={','.join(missing) or 'none'}",
-                    "Enable VPC Flow Logs for every VPC and route them to a protected sink.",
+            destination = aws_setting(args, "vpc_flow_log_destination_arn")
+            role_arn = aws_setting(args, "vpc_flow_log_iam_role_arn")
+            planned = bool(missing) and args.mode == "plan"
+            applied = False
+            if missing and args.mode == "apply" and destination:
+                kwargs = {
+                    "ResourceIds": missing,
+                    "ResourceType": "VPC",
+                    "TrafficType": "ALL",
+                    "LogDestination": destination,
+                    "LogDestinationType": "s3",
+                }
+                if ":logs:" in destination:
+                    kwargs["LogDestinationType"] = "cloud-watch-logs"
+                    if role_arn:
+                        kwargs["DeliverLogsPermissionArn"] = role_arn
+                client.create_flow_logs(**kwargs)
+                applied = True
+                missing = []
+            if missing and args.mode == "apply" and not destination:
+                findings.append(
+                    _finding(
+                        "AWS-VPC-001",
+                        title,
+                        Status.MANUAL,
+                        Severity.MEDIUM,
+                        account,
+                        "Apply requires policy aws.vpc_flow_log_destination_arn",
+                        "Set aws.vpc_flow_log_destination_arn in the policy before applying.",
+                    )
                 )
-            )
+            else:
+                findings.append(
+                    _finding(
+                        "AWS-VPC-001",
+                        title,
+                        Status.PASS if not missing else Status.FAIL,
+                        Severity.MEDIUM,
+                        account,
+                        f"vpcs={len(vpcs)}, missing_flow_logs={','.join(missing) or 'none'}",
+                        "Enable VPC Flow Logs for every VPC and route them to a protected sink.",
+                        changed=applied,
+                        planned=planned,
+                        before={"missing_flow_logs": missing} if planned or applied else None,
+                        after={"missing_flow_logs": [], "destination": destination}
+                        if planned or applied
+                        else None,
+                    )
+                )
         except Exception as exc:
             findings.append(
                 _finding(
@@ -269,12 +340,18 @@ def check_aws_services(session, account_id: str, args) -> list[Finding]:
     if _selected(args, "AWS-IAM-002"):
         title = "IAM Access Analyzer is enabled"
         try:
-            analyzers = session.client("accessanalyzer").list_analyzers().get("analyzers", [])
+            client = session.client("accessanalyzer")
+            analyzers = client.list_analyzers().get("analyzers", [])
             active = [
                 analyzer.get("arn", analyzer.get("name", "unknown"))
                 for analyzer in analyzers
                 if str(analyzer.get("status", "")).upper() == "ACTIVE"
             ]
+            planned = not active and args.mode == "plan"
+            applied = not active and args.mode == "apply"
+            if applied:
+                client.create_analyzer(analyzerName="automation-hardening-account", type="ACCOUNT")
+                active = ["automation-hardening-account"]
             findings.append(
                 _finding(
                     "AWS-IAM-002",
@@ -285,6 +362,10 @@ def check_aws_services(session, account_id: str, args) -> list[Finding]:
                     f"active_analyzers={len(active)}",
                     "Enable IAM Access Analyzer in every governed region or through AWS "
                     "Organizations.",
+                    changed=applied,
+                    planned=planned,
+                    before={"active_analyzers": 0} if planned or applied else None,
+                    after={"active_analyzers": 1} if planned or applied else None,
                 )
             )
         except Exception as exc:
@@ -333,4 +414,148 @@ def check_aws_services(session, account_id: str, args) -> list[Finding]:
                     "AWS-KMS-001", title, Status.ERROR, Severity.MEDIUM, account, _error_code(exc)
                 )
             )
+    return findings
+
+
+def check_aws_organization_services(session, account_id: str, args) -> list[Finding]:
+    findings = []
+    account = f"aws:account:{account_id}"
+
+    if _selected(args, "AWS-ORG-CT-001"):
+        title = "An organization CloudTrail trail is logging"
+        try:
+            client = session.client("cloudtrail")
+            trails = client.describe_trails(includeShadowTrails=False).get("trailList", [])
+            active = [
+                trail["TrailARN"]
+                for trail in trails
+                if trail.get("IsOrganizationTrail")
+                and trail.get("IsMultiRegionTrail")
+                and client.get_trail_status(Name=trail["TrailARN"]).get("IsLogging")
+            ]
+            findings.append(
+                _finding(
+                    "AWS-ORG-CT-001",
+                    title,
+                    Status.PASS if active else Status.FAIL,
+                    Severity.HIGH,
+                    account,
+                    f"active_organization_trails={len(active)}",
+                    "Configure a protected multi-region organization trail.",
+                )
+            )
+        except Exception as exc:
+            findings.append(
+                _finding(
+                    "AWS-ORG-CT-001",
+                    title,
+                    Status.MANUAL,
+                    Severity.HIGH,
+                    account,
+                    f"{_error_code(exc)}; verify from the AWS Organizations management account",
+                )
+            )
+
+    if _selected(args, "AWS-ORG-GD-001"):
+        title = "GuardDuty delegated administrator is configured"
+        try:
+            admins = (
+                session.client("guardduty")
+                .list_organization_admin_accounts()
+                .get("AdminAccounts", [])
+            )
+            active = [
+                admin for admin in admins if str(admin.get("AdminStatus", "")).upper() == "ENABLED"
+            ]
+            findings.append(
+                _finding(
+                    "AWS-ORG-GD-001",
+                    title,
+                    Status.PASS if active else Status.FAIL,
+                    Severity.HIGH,
+                    account,
+                    f"enabled_admin_accounts={len(active)}",
+                    "Delegate GuardDuty administration and enable organization auto-enrollment.",
+                )
+            )
+        except Exception as exc:
+            findings.append(
+                _finding(
+                    "AWS-ORG-GD-001",
+                    title,
+                    Status.MANUAL,
+                    Severity.HIGH,
+                    account,
+                    f"{_error_code(exc)}; verify from the AWS Organizations management account",
+                )
+            )
+
+    if _selected(args, "AWS-ORG-SH-001"):
+        title = "Security Hub organization administrator is configured"
+        try:
+            admin = (
+                session.client("securityhub")
+                .list_organization_admin_accounts()
+                .get("AdminAccounts", [])
+            )
+            findings.append(
+                _finding(
+                    "AWS-ORG-SH-001",
+                    title,
+                    Status.PASS if admin else Status.FAIL,
+                    Severity.HIGH,
+                    account,
+                    f"admin_accounts={len(admin)}",
+                    "Delegate Security Hub administration for the organization.",
+                )
+            )
+        except Exception as exc:
+            findings.append(
+                _finding(
+                    "AWS-ORG-SH-001",
+                    title,
+                    Status.MANUAL,
+                    Severity.HIGH,
+                    account,
+                    f"{_error_code(exc)}; verify from the AWS Organizations management account",
+                )
+            )
+
+    if _selected(args, "AWS-ORG-CONFIG-001"):
+        title = "AWS Config aggregator is configured"
+        try:
+            aggregators = (
+                session.client("config")
+                .describe_configuration_aggregators()
+                .get("ConfigurationAggregators", [])
+            )
+            org_aggregators = [
+                item
+                for item in aggregators
+                if item.get("OrganizationAggregationSource")
+                or item.get("AccountAggregationSources")
+            ]
+            findings.append(
+                _finding(
+                    "AWS-ORG-CONFIG-001",
+                    title,
+                    Status.PASS if org_aggregators else Status.FAIL,
+                    Severity.HIGH,
+                    account,
+                    f"aggregators={len(org_aggregators)}",
+                    "Configure an AWS Config aggregator for organization-wide visibility.",
+                )
+            )
+        except Exception as exc:
+            findings.append(
+                _finding(
+                    "AWS-ORG-CONFIG-001",
+                    title,
+                    Status.MANUAL,
+                    Severity.HIGH,
+                    account,
+                    f"{_error_code(exc)}; verify from the AWS Organizations management account",
+                )
+            )
+
     return findings

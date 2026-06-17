@@ -1,0 +1,36 @@
+name: Integration
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * 2"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  localstack-s3:
+    runs-on: ubuntu-latest
+    services:
+      localstack:
+        image: localstack/localstack:latest
+        ports:
+          - 4566:4566
+        env:
+          SERVICES: s3
+          AWS_DEFAULT_REGION: us-east-1
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[aws,dev]'
+      - run: pytest tests/integration/test_aws_localstack_s3.py
+        env:
+          LOCALSTACK_ENDPOINT: http://localhost:4566
+          AWS_DEFAULT_REGION: us-east-1

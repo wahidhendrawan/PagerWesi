@@ -6,6 +6,10 @@ to an exact licensed benchmark version before this project is used for formal co
 | ID | Target | Intent | Apply behavior |
 |---|---|---|---|
 | AWS-ORG-001 | AWS account | Confirm each organization member account is assessable | Report only |
+| AWS-ORG-CONFIG-001 | AWS organization | Confirm organization-wide Config aggregation | Report only |
+| AWS-ORG-CT-001 | AWS organization | Confirm organization CloudTrail logging | Report only |
+| AWS-ORG-GD-001 | AWS organization | Confirm GuardDuty delegated administration | Report only |
+| AWS-ORG-SH-001 | AWS organization | Confirm Security Hub delegated administration | Report only |
 | AWS-S3-001 | AWS account | Block public S3 access at account level | Enables all four settings |
 | AWS-S3-002 | S3 bucket | Reject public ACL grants | Report only |
 | AWS-S3-003 | S3 bucket | Reject public bucket policies | Report only |
@@ -14,15 +18,15 @@ to an exact licensed benchmark version before this project is used for formal co
 | AWS-S3-006 | S3 bucket | Enable versioning | Enables versioning |
 | AWS-S3-007 | S3 bucket | Configure server access logging | Report only |
 | AWS-IAM-001 | AWS account | Require root-user MFA | Report only |
-| AWS-IAM-002 | AWS region | Enable IAM Access Analyzer | Report only |
+| AWS-IAM-002 | AWS region | Enable IAM Access Analyzer | Creates account analyzer |
 | AWS-CT-001 | AWS account | Keep a multi-region CloudTrail trail logging | Report only |
 | AWS-CONFIG-001 | AWS region | Enable AWS Config recording | Report only |
 | AWS-GD-001 | AWS region | Enable GuardDuty | Report only |
 | AWS-SH-001 | AWS region | Enable Security Hub | Report only |
 | AWS-EC2-001 | AWS region | Remove rules from default security groups | Report only |
-| AWS-EBS-001 | AWS region | Enable EBS encryption by default | Report only |
+| AWS-EBS-001 | AWS region | Enable EBS encryption by default | Enables account-region setting |
 | AWS-RDS-001 | AWS region | Encrypt RDS DB instance storage | Report only |
-| AWS-VPC-001 | AWS region | Enable VPC Flow Logs for every VPC | Report only |
+| AWS-VPC-001 | AWS region | Enable VPC Flow Logs for every VPC | Creates Flow Logs when policy destination is set |
 | AWS-KMS-001 | AWS region | Rotate eligible customer-managed keys | Report only |
 | AZURE-IAM-001 | Azure | Discover assessable subscriptions | Report only |
 | AZURE-STORAGE-001 | Azure | Enforce HTTPS and modern TLS for Storage | Report only |

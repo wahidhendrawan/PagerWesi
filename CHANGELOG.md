@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.2 - 2026-06-17
+
+- Added Node 24 transition flags across GitHub Actions workflows.
+- Added optional scheduled/manual LocalStack integration workflow.
+- Added policy schema and AWS policy settings for VPC Flow Logs apply mode.
+- Added AWS apply support for EBS encryption by default and IAM Access Analyzer.
+- Added AWS organization aggregate controls for CloudTrail, Config, GuardDuty, and Security Hub.
+- Switched Azure subscription diagnostic settings to ARM REST lookup.
+- Added provider permission examples and documentation version index.
+
 ## 0.3.1 - 2026-06-17
 
 - Added a standalone quickstart guide and linked it from README and the promotional website.

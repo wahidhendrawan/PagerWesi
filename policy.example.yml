@@ -2,6 +2,11 @@ version: 1
 network:
   azure_admin_ports: [22, 3389, 5985, 5986]
   gcp_admin_ports: [22, 3389]
+aws:
+  # Required only when applying AWS-VPC-001. Use an S3 ARN or a CloudWatch Logs ARN.
+  vpc_flow_log_destination_arn: "arn:aws:s3:::central-vpc-flow-logs"
+  # Required only for CloudWatch Logs destinations.
+  # vpc_flow_log_iam_role_arn: "arn:aws:iam::123456789012:role/VpcFlowLogsRole"
 exclude_resources:
   - "arn:aws:s3:::approved-public-assets-*"
   - "//storage.googleapis.com/approved-public-assets-*"

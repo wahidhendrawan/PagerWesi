@@ -8,6 +8,10 @@
   },
   "mappings": {
     "AWS-ORG-001": {"nist_csf": ["ID.AM"], "iso_27001": ["5.9"], "cis": "AWS Foundations - Inventory"},
+    "AWS-ORG-CONFIG-001": {"nist_csf": ["DE.CM", "PR.PS"], "iso_27001": ["8.9", "8.15"], "cis": "AWS Foundations - Monitoring"},
+    "AWS-ORG-CT-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.15"], "cis": "AWS Foundations - Logging"},
+    "AWS-ORG-GD-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.16"], "cis": "AWS Foundations - Monitoring"},
+    "AWS-ORG-SH-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.16"], "cis": "AWS Foundations - Monitoring"},
     "AWS-IAM-001": {"nist_csf": ["PR.AA"], "iso_27001": ["5.17"], "cis": "AWS Foundations - IAM"},
     "AWS-IAM-002": {"nist_csf": ["PR.AA", "DE.CM"], "iso_27001": ["5.15", "8.16"], "cis": "AWS Foundations - IAM"},
     "AWS-S3-001": {"nist_csf": ["PR.DS"], "iso_27001": ["8.3", "8.9"], "cis": "AWS Foundations - Storage"},

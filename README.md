@@ -7,7 +7,8 @@ in a disposable environment before using apply mode.
 Promotional website assets are available in [docs/index.html](docs/index.html) and can be deployed
 through the included GitHub Pages workflow.
 
-For a short setup path, start with [docs/quickstart.md](docs/quickstart.md).
+For a short setup path, start with [docs/quickstart.md](docs/quickstart.md). Provider permission
+examples are in [docs/provider-permissions.md](docs/provider-permissions.md).
 
 ## Capabilities
 
@@ -76,8 +77,9 @@ permission errors. AWS also checks root MFA, CloudTrail, Config, GuardDuty, Secu
 security groups, EBS encryption by default, RDS encryption, VPC Flow Logs, IAM Access Analyzer, and
 KMS rotation. Named profiles or AWS Organizations role assumption support
 multi-account audits. Run regional controls in every governed region. Apply mode currently changes
-S3 Public Access Block, default encryption, and versioning. It does not rewrite bucket policies,
-ACLs, logging architecture, or paid security services.
+supported S3 settings, EBS encryption by default, IAM Access Analyzer, and VPC Flow Logs when a
+policy destination ARN is configured. It does not rewrite bucket policies, ACLs, broader logging
+architecture, or paid security service plans.
 
 Plan manifests contain the proposed before/after values and do not call mutation APIs. During
 AWS Organizations audits, an inaccessible member account is reported without stopping assessment

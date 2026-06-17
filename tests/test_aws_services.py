@@ -3,10 +3,11 @@ from unittest.mock import MagicMock, patch
 
 from cloud.aws_harden import _check_aws_services, run_audit
 from cloud.core import Status
+from cloud.providers.aws.services import check_aws_organization_services
 
 
-def options(control):
-    return SimpleNamespace(control=[control], mode="audit")
+def options(control, mode="audit", policy=None):
+    return SimpleNamespace(control=[control], mode=mode, policy=policy)
 
 
 def session_with(client):
@@ -64,6 +65,14 @@ def test_ebs_encryption_by_default_is_required():
     assert findings[0].status == Status.FAIL
 
 
+def test_ebs_apply_enables_encryption_by_default():
+    client = MagicMock()
+    client.get_ebs_encryption_by_default.return_value = {"EbsEncryptionByDefault": False}
+    findings = _check_aws_services(session_with(client), "123", options("AWS-EBS-001", "apply"))
+    assert findings[0].changed is True
+    client.enable_ebs_encryption_by_default.assert_called_once()
+
+
 def test_rds_storage_encryption_reports_unencrypted_instances():
     client = MagicMock()
     client.get_paginator.return_value.paginate.return_value = [
@@ -96,11 +105,76 @@ def test_vpc_flow_logs_are_required_for_every_vpc():
     assert "vpc-2" in findings[0].evidence
 
 
+def test_vpc_flow_logs_apply_uses_policy_destination():
+    ec2 = MagicMock()
+    ec2.get_paginator.side_effect = [
+        MagicMock(paginate=MagicMock(return_value=[{"Vpcs": [{"VpcId": "vpc-1"}]}])),
+        MagicMock(paginate=MagicMock(return_value=[{"FlowLogs": []}])),
+    ]
+    policy = {"aws": {"vpc_flow_log_destination_arn": "arn:aws:s3:::logs"}}
+    findings = _check_aws_services(
+        session_with(ec2), "123", options("AWS-VPC-001", "apply", policy)
+    )
+    assert findings[0].changed is True
+    ec2.create_flow_logs.assert_called_once()
+
+
 def test_access_analyzer_requires_active_analyzer():
     client = MagicMock()
     client.list_analyzers.return_value = {"analyzers": [{"name": "account", "status": "ACTIVE"}]}
     findings = _check_aws_services(session_with(client), "123", options("AWS-IAM-002"))
     assert findings[0].status == Status.PASS
+
+
+def test_access_analyzer_apply_creates_account_analyzer():
+    client = MagicMock()
+    client.list_analyzers.return_value = {"analyzers": []}
+    findings = _check_aws_services(session_with(client), "123", options("AWS-IAM-002", "apply"))
+    assert findings[0].changed is True
+    client.create_analyzer.assert_called_once_with(
+        analyzerName="automation-hardening-account", type="ACCOUNT"
+    )
+
+
+def test_organization_aggregate_controls_pass():
+    session = MagicMock()
+    cloudtrail = MagicMock()
+    cloudtrail.describe_trails.return_value = {
+        "trailList": [
+            {
+                "TrailARN": "arn:trail",
+                "IsOrganizationTrail": True,
+                "IsMultiRegionTrail": True,
+            }
+        ]
+    }
+    cloudtrail.get_trail_status.return_value = {"IsLogging": True}
+    guardduty = MagicMock()
+    guardduty.list_organization_admin_accounts.return_value = {
+        "AdminAccounts": [{"AdminStatus": "ENABLED"}]
+    }
+    securityhub = MagicMock()
+    securityhub.list_organization_admin_accounts.return_value = {"AdminAccounts": [{}]}
+    config = MagicMock()
+    config.describe_configuration_aggregators.return_value = {
+        "ConfigurationAggregators": [{"OrganizationAggregationSource": {"RoleArn": "arn"}}]
+    }
+    session.client.side_effect = lambda name: {
+        "cloudtrail": cloudtrail,
+        "guardduty": guardduty,
+        "securityhub": securityhub,
+        "config": config,
+    }[name]
+    findings = check_aws_organization_services(
+        session, "123", SimpleNamespace(control=[], mode="audit")
+    )
+    assert {finding.control_id for finding in findings} == {
+        "AWS-ORG-CT-001",
+        "AWS-ORG-GD-001",
+        "AWS-ORG-SH-001",
+        "AWS-ORG-CONFIG-001",
+    }
+    assert all(finding.status == Status.PASS for finding in findings)
 
 
 def audit_options(**overrides):

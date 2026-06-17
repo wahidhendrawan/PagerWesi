@@ -27,9 +27,11 @@ automation-hardening aws --mode apply --yes --change-manifest reports/aws-change
 automation-hardening aws --mode rollback --yes --rollback-manifest reports/aws-changes.json
 ```
 
-AWS checks include S3, CloudTrail, Config, GuardDuty, Security Hub, default security groups, EBS
-encryption by default, RDS storage encryption, VPC Flow Logs, IAM Access Analyzer, and KMS rotation.
-Apply/rollback remain limited to supported S3 settings.
+AWS checks include S3, organization guardrails, CloudTrail, Config, GuardDuty, Security Hub, default
+security groups, EBS encryption by default, RDS storage encryption, VPC Flow Logs, IAM Access
+Analyzer, and KMS rotation. Apply mode supports reversible S3 settings, EBS encryption by default,
+and IAM Access Analyzer. VPC Flow Logs apply mode requires `aws.vpc_flow_log_destination_arn` in
+the policy file. Rollback remains limited to supported S3 settings.
 
 ## Azure
 
@@ -61,6 +63,11 @@ automation-hardening aws --policy policy.example.yml
 
 Policy files can override Azure/GCP administrative ports and mark known resources as excluded.
 Excluded resources are emitted as `SKIP` findings.
+See [policy.schema.json](policy.schema.json) for the reusable policy schema.
+
+## Permissions
+
+See [provider-permissions.md](provider-permissions.md) for audit and apply permission examples.
 
 ## Optional LocalStack Contract Test
 
