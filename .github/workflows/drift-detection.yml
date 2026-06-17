@@ -1,0 +1,59 @@
+name: Drift Detection
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[aws,azure,gcp,k8s]'
+      - name: Run baseline audit
+        id: audit
+        continue-on-error: true
+        run: |
+          mkdir -p reports
+          automation-hardening all --format json --output reports/current.json 2>&1 || true
+      - name: Compare with previous baseline
+        id: drift
+        run: |
+          python -c "
+          import json, sys, os
+          current = json.load(open('reports/current.json'))
+          fails = [f for f in current.get('findings', []) if f['status'] == 'fail']
+          count = len(fails)
+          print(f'Failed controls: {count}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'fail_count={count}\n')
+              f.write(f'has_drift={'true' if count > 0 else 'false'}\n')
+          "
+      - name: Create issue on drift
+        if: steps.drift.outputs.has_drift == 'true'
+        run: |
+          gh issue create \
+            --title "Drift detected: ${{ steps.drift.outputs.fail_count }} controls failing" \
+            --body "Scheduled drift detection found ${{ steps.drift.outputs.fail_count }} failing controls. Review reports/current.json for details." \
+            --label "security,drift" \
+            || echo "Issue creation skipped (labels may not exist)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drift-report
+          path: reports/current.json
+          retention-days: 30
