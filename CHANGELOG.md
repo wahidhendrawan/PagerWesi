@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.1 - 2026-06-17
+
+- Added a standalone quickstart guide and linked it from README and the promotional website.
+- Added `automation-hardening policy validate --policy PATH`.
+- Added AWS controls for EBS encryption by default, RDS storage encryption, VPC Flow Logs, and IAM
+  Access Analyzer.
+- Added Azure controls for Key Vault public access, SQL auditing, and diagnostic settings.
+- Added GCP controls for service-account user-managed keys, Cloud KMS rotation, and audit logging.
+- Added optional LocalStack S3 contract coverage and expanded Azure/GCP provider contract tests.
+
 ## 0.3.0 - 2026-06-15
 
 - Added AWS rollback manifests for reversible S3 Public Access Block and encryption changes.

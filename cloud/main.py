@@ -28,7 +28,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Audit cloud resources against a security baseline"
     )
-    parser.add_argument("provider", choices=["aws", "azure", "gcp"])
+    parser.add_argument("provider", choices=["aws", "azure", "gcp", "policy"])
+    parser.add_argument("policy_action", nargs="?", choices=["validate"])
     parser.add_argument("--mode", choices=["audit", "plan", "apply", "rollback"], default="audit")
     parser.add_argument("--format", choices=["text", "json", "sarif"], default="text")
     parser.add_argument("--output", type=Path, help="Write the report to a file")
@@ -93,6 +94,20 @@ def write_report(findings: list[Finding], report_format: str, stream: TextIO) ->
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.provider == "policy":
+        if args.policy_action != "validate" or not args.policy:
+            print("[x] usage: automation-hardening policy validate --policy PATH", file=sys.stderr)
+            return 2
+        try:
+            load_policy(args.policy)
+        except Exception as exc:
+            print(f"[x] policy invalid: {exc}", file=sys.stderr)
+            return 2
+        print(f"[+] policy valid: {args.policy}")
+        return 0
+    if args.policy_action:
+        print("[x] policy subcommands are only valid with provider 'policy'", file=sys.stderr)
+        return 2
     if args.mode in {"apply", "rollback"} and not args.yes:
         print(f"[x] --mode {args.mode} requires --yes", file=sys.stderr)
         return 2

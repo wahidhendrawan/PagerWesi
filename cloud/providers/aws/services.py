@@ -174,6 +174,126 @@ def check_aws_services(session, account_id: str, args) -> list[Finding]:
                 )
             )
 
+    if _selected(args, "AWS-EBS-001"):
+        title = "EBS encryption by default is enabled"
+        try:
+            enabled = bool(
+                session.client("ec2").get_ebs_encryption_by_default().get("EbsEncryptionByDefault")
+            )
+            findings.append(
+                _finding(
+                    "AWS-EBS-001",
+                    title,
+                    Status.PASS if enabled else Status.FAIL,
+                    Severity.HIGH,
+                    account,
+                    f"ebs_encryption_by_default={enabled}",
+                    "Enable EBS encryption by default in every governed region.",
+                )
+            )
+        except Exception as exc:
+            findings.append(
+                _finding(
+                    "AWS-EBS-001", title, Status.ERROR, Severity.HIGH, account, _error_code(exc)
+                )
+            )
+
+    if _selected(args, "AWS-RDS-001"):
+        title = "RDS DB instances use storage encryption"
+        try:
+            client = session.client("rds")
+            instances = [
+                item
+                for page in client.get_paginator("describe_db_instances").paginate()
+                for item in page.get("DBInstances", [])
+            ]
+            unencrypted = [
+                item.get("DBInstanceIdentifier", "unknown")
+                for item in instances
+                if not item.get("StorageEncrypted", False)
+            ]
+            findings.append(
+                _finding(
+                    "AWS-RDS-001",
+                    title,
+                    Status.PASS if not unencrypted else Status.FAIL,
+                    Severity.HIGH,
+                    account,
+                    f"instances={len(instances)}, unencrypted={','.join(unencrypted) or 'none'}",
+                    "Encrypt RDS storage and migrate unencrypted DB instances.",
+                )
+            )
+        except Exception as exc:
+            findings.append(
+                _finding(
+                    "AWS-RDS-001", title, Status.ERROR, Severity.HIGH, account, _error_code(exc)
+                )
+            )
+
+    if _selected(args, "AWS-VPC-001"):
+        title = "VPC Flow Logs are enabled for every VPC"
+        try:
+            client = session.client("ec2")
+            vpcs = [
+                item
+                for page in client.get_paginator("describe_vpcs").paginate()
+                for item in page.get("Vpcs", [])
+            ]
+            logged = {
+                log.get("ResourceId")
+                for page in client.get_paginator("describe_flow_logs").paginate()
+                for log in page.get("FlowLogs", [])
+                if str(log.get("FlowLogStatus", "")).upper() == "ACTIVE"
+            }
+            missing = [
+                vpc.get("VpcId", "unknown") for vpc in vpcs if vpc.get("VpcId") not in logged
+            ]
+            findings.append(
+                _finding(
+                    "AWS-VPC-001",
+                    title,
+                    Status.PASS if not missing else Status.FAIL,
+                    Severity.MEDIUM,
+                    account,
+                    f"vpcs={len(vpcs)}, missing_flow_logs={','.join(missing) or 'none'}",
+                    "Enable VPC Flow Logs for every VPC and route them to a protected sink.",
+                )
+            )
+        except Exception as exc:
+            findings.append(
+                _finding(
+                    "AWS-VPC-001", title, Status.ERROR, Severity.MEDIUM, account, _error_code(exc)
+                )
+            )
+
+    if _selected(args, "AWS-IAM-002"):
+        title = "IAM Access Analyzer is enabled"
+        try:
+            analyzers = session.client("accessanalyzer").list_analyzers().get("analyzers", [])
+            active = [
+                analyzer.get("arn", analyzer.get("name", "unknown"))
+                for analyzer in analyzers
+                if str(analyzer.get("status", "")).upper() == "ACTIVE"
+            ]
+            findings.append(
+                _finding(
+                    "AWS-IAM-002",
+                    title,
+                    Status.PASS if active else Status.FAIL,
+                    Severity.HIGH,
+                    account,
+                    f"active_analyzers={len(active)}",
+                    "Enable IAM Access Analyzer in every governed region or through AWS "
+                    "Organizations.",
+                )
+            )
+        except Exception as exc:
+            findings.append(
+                _finding(
+                    "AWS-IAM-002", title, Status.ERROR, Severity.HIGH, account, _error_code(exc)
+                )
+            )
+
     if _selected(args, "AWS-KMS-001"):
         title = "Customer-managed symmetric KMS keys rotate"
         try:

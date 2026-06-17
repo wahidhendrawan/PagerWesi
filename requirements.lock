@@ -2,10 +2,12 @@ azure-common==1.1.28
 azure-core==1.41.0
 azure-identity==1.25.3
 azure-mgmt-core==1.6.0
+azure-mgmt-keyvault==10.3.1
 azure-mgmt-monitor==7.0.0
 azure-mgmt-network==30.2.0
 azure-mgmt-resource==23.4.0
 azure-mgmt-security==7.0.0
+azure-mgmt-sql==3.0.1
 azure-mgmt-storage==23.1.0
 azure-mgmt-subscription==3.1.1
 boolean.py==5.0
@@ -27,6 +29,8 @@ google-cloud-appengine-logging==1.10.0
 google-cloud-audit-log==0.6.0
 google-cloud-compute==1.48.0
 google-cloud-core==2.6.0
+google-cloud-iam==2.23.0
+google-cloud-kms==3.13.0
 google-cloud-logging==3.16.0
 google-cloud-resource-manager==1.17.0
 google-cloud-storage==3.12.0

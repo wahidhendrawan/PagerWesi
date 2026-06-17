@@ -57,6 +57,52 @@ def test_kms_rotation_failure_is_reported():
     client.describe_key.assert_any_call(KeyId="key-2")
 
 
+def test_ebs_encryption_by_default_is_required():
+    client = MagicMock()
+    client.get_ebs_encryption_by_default.return_value = {"EbsEncryptionByDefault": False}
+    findings = _check_aws_services(session_with(client), "123", options("AWS-EBS-001"))
+    assert findings[0].status == Status.FAIL
+
+
+def test_rds_storage_encryption_reports_unencrypted_instances():
+    client = MagicMock()
+    client.get_paginator.return_value.paginate.return_value = [
+        {
+            "DBInstances": [
+                {"DBInstanceIdentifier": "prod", "StorageEncrypted": True},
+                {"DBInstanceIdentifier": "legacy", "StorageEncrypted": False},
+            ]
+        }
+    ]
+    findings = _check_aws_services(session_with(client), "123", options("AWS-RDS-001"))
+    assert findings[0].status == Status.FAIL
+    assert "legacy" in findings[0].evidence
+
+
+def test_vpc_flow_logs_are_required_for_every_vpc():
+    ec2 = MagicMock()
+    ec2.get_paginator.side_effect = [
+        MagicMock(
+            paginate=MagicMock(return_value=[{"Vpcs": [{"VpcId": "vpc-1"}, {"VpcId": "vpc-2"}]}])
+        ),
+        MagicMock(
+            paginate=MagicMock(
+                return_value=[{"FlowLogs": [{"ResourceId": "vpc-1", "FlowLogStatus": "ACTIVE"}]}]
+            )
+        ),
+    ]
+    findings = _check_aws_services(session_with(ec2), "123", options("AWS-VPC-001"))
+    assert findings[0].status == Status.FAIL
+    assert "vpc-2" in findings[0].evidence
+
+
+def test_access_analyzer_requires_active_analyzer():
+    client = MagicMock()
+    client.list_analyzers.return_value = {"analyzers": [{"name": "account", "status": "ACTIVE"}]}
+    findings = _check_aws_services(session_with(client), "123", options("AWS-IAM-002"))
+    assert findings[0].status == Status.PASS
+
+
 def audit_options(**overrides):
     values = {
         "control": ["AWS-IAM-001"],
