@@ -7,9 +7,12 @@ CONTROL_IDS = {
     "AZURE-IAM-001",
     "AZURE-STORAGE-001",
     "AZURE-STORAGE-002",
+    "AZURE-KV-001",
+    "AZURE-SQL-001",
     "AZURE-NET-001",
     "AZURE-SEC-001",
     "AZURE-LOG-001",
+    "AZURE-LOG-002",
 }
 ADMIN_PORTS = {"22", "3389", "5985", "5986"}
 PUBLIC_SOURCES = {"*", "0.0.0.0/0", "::/0", "internet"}
@@ -34,6 +37,26 @@ def _includes_admin_port(values, sensitive_ports: set[str]) -> bool:
                 if any(int(start) <= int(port) <= int(end) for port in sensitive_ports):
                     return True
     return False
+
+
+def _resource_group_from_id(resource_id: str) -> str:
+    parts = [part for part in resource_id.split("/") if part]
+    try:
+        return parts[parts.index("resourceGroups") + 1]
+    except (ValueError, IndexError):
+        return ""
+
+
+def _key_vault_client(credential, subscription_id):
+    from azure.mgmt.keyvault import KeyVaultManagementClient
+
+    return KeyVaultManagementClient(credential, subscription_id)
+
+
+def _sql_client(credential, subscription_id):
+    from azure.mgmt.sql import SqlManagementClient
+
+    return SqlManagementClient(credential, subscription_id)
 
 
 def _subscription_findings(credential, subscription, args):
@@ -112,6 +135,83 @@ def _subscription_findings(credential, subscription, args):
                         )
                     )
 
+    if _selected(args, "AZURE-KV-001"):
+        try:
+            vaults = _key_vault_client(credential, subscription_id).vaults.list()
+            public = []
+            total = 0
+            for vault in vaults:
+                total += 1
+                properties = getattr(vault, "properties", None)
+                public_network_access = str(
+                    getattr(properties, "public_network_access", "Enabled")
+                ).lower()
+                network_acls = getattr(properties, "network_acls", None)
+                default_action = str(getattr(network_acls, "default_action", "Allow")).lower()
+                if public_network_access != "disabled" and default_action != "deny":
+                    public.append(getattr(vault, "name", getattr(vault, "id", "unknown")))
+            findings.append(
+                _finding(
+                    "AZURE-KV-001",
+                    "Key Vault public network access is restricted",
+                    Status.PASS if not public else Status.FAIL,
+                    Severity.HIGH,
+                    root,
+                    f"vaults={total}, public_network={','.join(public) or 'none'}",
+                    "Disable public network access or set Key Vault network ACL default "
+                    "action to Deny.",
+                )
+            )
+        except Exception as exc:
+            findings.append(
+                _finding(
+                    "AZURE-KV-001",
+                    "Key Vault network settings are assessable",
+                    Status.ERROR,
+                    Severity.HIGH,
+                    root,
+                    type(exc).__name__,
+                    "Grant Key Vault Reader access.",
+                )
+            )
+
+    if _selected(args, "AZURE-SQL-001"):
+        try:
+            client = _sql_client(credential, subscription_id)
+            servers = list(client.servers.list())
+            disabled = []
+            for server in servers:
+                resource_group = _resource_group_from_id(getattr(server, "id", ""))
+                policy = client.server_blob_auditing_policies.get(
+                    resource_group,
+                    server.name,
+                )
+                if str(getattr(policy, "state", "Disabled")).lower() != "enabled":
+                    disabled.append(server.name)
+            findings.append(
+                _finding(
+                    "AZURE-SQL-001",
+                    "Azure SQL server auditing is enabled",
+                    Status.PASS if not disabled else Status.FAIL,
+                    Severity.HIGH,
+                    root,
+                    f"servers={len(servers)}, auditing_disabled={','.join(disabled) or 'none'}",
+                    "Enable auditing for every Azure SQL server and send logs to an approved sink.",
+                )
+            )
+        except Exception as exc:
+            findings.append(
+                _finding(
+                    "AZURE-SQL-001",
+                    "Azure SQL auditing settings are assessable",
+                    Status.ERROR,
+                    Severity.HIGH,
+                    root,
+                    type(exc).__name__,
+                    "Grant SQL Server Reader access.",
+                )
+            )
+
     if _selected(args, "AZURE-NET-001"):
         try:
             exposed = []
@@ -184,6 +284,50 @@ def _subscription_findings(credential, subscription, args):
                     root,
                     type(exc).__name__,
                     "Grant Security Reader access.",
+                )
+            )
+
+    if _selected(args, "AZURE-LOG-002"):
+        try:
+            client = MonitorManagementClient(credential, subscription_id)
+            operations = getattr(client, "diagnostic_settings", None)
+            if operations is None:
+                findings.append(
+                    _finding(
+                        "AZURE-LOG-002",
+                        "Subscription diagnostic settings use modern export",
+                        Status.MANUAL,
+                        Severity.HIGH,
+                        root,
+                        "diagnostic_settings operation is unavailable in this SDK version",
+                        "Verify Azure Monitor diagnostic settings or policy assignments at "
+                        "subscription scope.",
+                    )
+                )
+            else:
+                settings = list(operations.list(root))
+                findings.append(
+                    _finding(
+                        "AZURE-LOG-002",
+                        "Subscription diagnostic settings use modern export",
+                        Status.PASS if settings else Status.FAIL,
+                        Severity.HIGH,
+                        root,
+                        f"diagnostic_settings={len(settings)}",
+                        "Configure subscription diagnostic settings to Log Analytics, Event Hub, "
+                        "or Storage.",
+                    )
+                )
+        except Exception as exc:
+            findings.append(
+                _finding(
+                    "AZURE-LOG-002",
+                    "Subscription diagnostic settings are assessable",
+                    Status.ERROR,
+                    Severity.HIGH,
+                    root,
+                    type(exc).__name__,
+                    "Grant Monitoring Reader access.",
                 )
             )
 

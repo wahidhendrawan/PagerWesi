@@ -187,15 +187,15 @@ Summary: pass=18, fail=2, error=0, skip=0, manual=0</code></pre>
         <div class="feature-grid">
           <div>
             <h3>AWS</h3>
-            <p>S3 public access, encryption, versioning, CloudTrail, Config, GuardDuty, Security Hub, KMS, default security groups, Organizations.</p>
+            <p>S3 public access, encryption, versioning, CloudTrail, Config, GuardDuty, Security Hub, EBS/RDS encryption, VPC Flow Logs, Access Analyzer, KMS, Organizations.</p>
           </div>
           <div>
             <h3>Azure</h3>
-            <p>Storage TLS, storage network rules, NSG administrative exposure, Defender plans, subscription activity log export.</p>
+            <p>Storage TLS, Key Vault public access, SQL auditing, NSG administrative exposure, Defender plans, activity logs, diagnostic settings.</p>
           </div>
           <div>
             <h3>GCP</h3>
-            <p>Cloud Storage public IAM, uniform bucket access, firewall exposure, logging sinks, Security Command Center manual posture.</p>
+            <p>Cloud Storage public IAM, service-account keys, KMS rotation, firewall exposure, logging sinks, audit logging, Security Command Center manual posture.</p>
           </div>
           <div>
             <h3>OS</h3>
@@ -211,6 +211,7 @@ Summary: pass=18, fail=2, error=0, skip=0, manual=0</code></pre>
           <pre><code>python3 -m venv .venv
 . .venv/bin/activate
 pip install -e '.[aws]'
+automation-hardening policy validate --policy policy.example.yml
 automation-hardening aws --format json --output reports/aws.json</code></pre>
         </div>
         <div class="cta-panel">
@@ -221,7 +222,8 @@ automation-hardening aws --format json --output reports/aws.json</code></pre>
             <li>Evidence untuk remediation workflow</li>
             <li>SARIF ingestion ke GitHub code scanning</li>
           </ul>
-          <a class="button primary wide" href="controls.md">Lihat katalog kontrol</a>
+          <a class="button primary wide" href="quickstart.md">Buka quickstart</a>
+          <a class="button secondary wide" href="controls.md">Lihat katalog kontrol</a>
         </div>
       </section>
     </main>
@@ -233,6 +235,7 @@ automation-hardening aws --format json --output reports/aws.json</code></pre>
       </p>
       <div>
         <a href="controls.md">Controls</a>
+        <a href="quickstart.md">Quickstart</a>
         <a href="compliance-mapping.json">Compliance Mapping</a>
         <a href="https://github.com/wahidhendrawan/Automation-Hardening">GitHub</a>
       </div>
