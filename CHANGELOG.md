@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0 - 2026-06-17
+
+- Removed Node 20 warning by upgrading `actions/setup-python` to v6 across all workflows.
+- Added AWS rollback handlers for EBS encryption by default, IAM Access Analyzer, and VPC Flow Logs.
+- Added runtime JSON Schema validation for policy files with precise error paths (`jsonschema`).
+- Added `pull_request` trigger with path filter to the LocalStack integration workflow.
+- Enriched SARIF output with full descriptions, help URIs, NIST CSF / ISO 27001 / CIS framework
+  tags, security-severity scores, markdown remediation guidance, and tool version metadata.
+- Added non-mutating plan mode for Azure and GCP with plan manifest generation.
+- Added `generate_control_docs.py` to produce `docs/controls.md` and `compliance-mapping.json`
+  from the single-source control registry. CI enforces drift checks.
+- Added GHCR container image publishing with provenance attestation in the release workflow.
+- Updated GitHub Pages landing page to full English with container and plan mode sections.
+- Updated README with container usage, expanded rollback boundaries, and Azure/GCP plan mode.
+
 ## 0.3.2 - 2026-06-17
 
 - Added Node 24 transition flags across GitHub Actions workflows.
