@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.0 - 2026-06-17
+
+- Added webhook alerts for Slack, Microsoft Teams, and PagerDuty (`--notify`).
+- Added pre-commit hook configuration for audit-on-commit workflows.
+- Added compliance evidence export for SOC 2 and PCI DSS (`--export-compliance`).
+- Added time-boxed exception/waiver management (`--exceptions`).
+- Added Docker CIS Benchmark audit (daemon config, user namespaces, net=host, image tags).
+- Added secrets detection scanner (AWS keys, private keys, hardcoded passwords).
+- Added Terraform plan integration (security groups, public S3, IAM wildcards, encryption).
+- Added GitHub App PR comment workflow for automatic security feedback.
+- Added VS Code project settings and tasks.
+- Added network/TLS scanner (TLS version, certificate validity, open ports).
+- Added static HTML dashboard site generator (`--generate-dashboard`).
+- Added agent/daemon mode with periodic audit and drift alerting (`--agent`).
+
 ## 0.6.0 - 2026-06-17
 
 - Fixed Integration workflow to not block PR merges (`continue-on-error: true`).
