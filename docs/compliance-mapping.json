@@ -7,55 +7,510 @@
     "cis": "Applicable CIS Benchmark family; verify exact licensed benchmark version and profile"
   },
   "mappings": {
-    "AWS-ORG-001": {"nist_csf": ["ID.AM"], "iso_27001": ["5.9"], "cis": "AWS Foundations - Inventory"},
-    "AWS-ORG-CONFIG-001": {"nist_csf": ["DE.CM", "PR.PS"], "iso_27001": ["8.9", "8.15"], "cis": "AWS Foundations - Monitoring"},
-    "AWS-ORG-CT-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.15"], "cis": "AWS Foundations - Logging"},
-    "AWS-ORG-GD-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.16"], "cis": "AWS Foundations - Monitoring"},
-    "AWS-ORG-SH-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.16"], "cis": "AWS Foundations - Monitoring"},
-    "AWS-IAM-001": {"nist_csf": ["PR.AA"], "iso_27001": ["5.17"], "cis": "AWS Foundations - IAM"},
-    "AWS-IAM-002": {"nist_csf": ["PR.AA", "DE.CM"], "iso_27001": ["5.15", "8.16"], "cis": "AWS Foundations - IAM"},
-    "AWS-S3-001": {"nist_csf": ["PR.DS"], "iso_27001": ["8.3", "8.9"], "cis": "AWS Foundations - Storage"},
-    "AWS-S3-002": {"nist_csf": ["PR.AA", "PR.DS"], "iso_27001": ["5.15", "8.3"], "cis": "AWS Foundations - Storage"},
-    "AWS-S3-003": {"nist_csf": ["PR.AA", "PR.DS"], "iso_27001": ["5.15", "8.3"], "cis": "AWS Foundations - Storage"},
-    "AWS-S3-004": {"nist_csf": ["PR.DS"], "iso_27001": ["8.3", "8.9"], "cis": "AWS Foundations - Storage"},
-    "AWS-S3-005": {"nist_csf": ["PR.DS"], "iso_27001": ["8.24"], "cis": "AWS Foundations - Storage"},
-    "AWS-S3-006": {"nist_csf": ["PR.DS"], "iso_27001": ["8.13"], "cis": "AWS Foundations - Storage"},
-    "AWS-S3-007": {"nist_csf": ["DE.CM"], "iso_27001": ["8.15"], "cis": "AWS Foundations - Logging"},
-    "AWS-CT-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.15"], "cis": "AWS Foundations - Logging"},
-    "AWS-CONFIG-001": {"nist_csf": ["DE.CM", "PR.PS"], "iso_27001": ["8.9", "8.15"], "cis": "AWS Foundations - Monitoring"},
-    "AWS-GD-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.16"], "cis": "AWS Foundations - Monitoring"},
-    "AWS-SH-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.16"], "cis": "AWS Foundations - Monitoring"},
-    "AWS-EC2-001": {"nist_csf": ["PR.IR"], "iso_27001": ["8.20"], "cis": "AWS Foundations - Networking"},
-    "AWS-EBS-001": {"nist_csf": ["PR.DS"], "iso_27001": ["8.24"], "cis": "AWS Foundations - Storage"},
-    "AWS-RDS-001": {"nist_csf": ["PR.DS"], "iso_27001": ["8.24"], "cis": "AWS Foundations - Database"},
-    "AWS-VPC-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.15"], "cis": "AWS Foundations - Networking"},
-    "AWS-KMS-001": {"nist_csf": ["PR.DS"], "iso_27001": ["8.24"], "cis": "AWS Foundations - Cryptography"},
-    "AZURE-IAM-001": {"nist_csf": ["PR.AA"], "iso_27001": ["5.15"], "cis": "Microsoft Azure Foundations - Identity"},
-    "AZURE-STORAGE-001": {"nist_csf": ["PR.DS"], "iso_27001": ["8.24"], "cis": "Microsoft Azure Foundations - Storage"},
-    "AZURE-STORAGE-002": {"nist_csf": ["PR.IR"], "iso_27001": ["8.20"], "cis": "Microsoft Azure Foundations - Storage"},
-    "AZURE-KV-001": {"nist_csf": ["PR.IR", "PR.DS"], "iso_27001": ["8.20", "8.24"], "cis": "Microsoft Azure Foundations - Key Vault"},
-    "AZURE-SQL-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.15"], "cis": "Microsoft Azure Foundations - Database"},
-    "AZURE-NET-001": {"nist_csf": ["PR.IR"], "iso_27001": ["8.20"], "cis": "Microsoft Azure Foundations - Networking"},
-    "AZURE-SEC-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.16"], "cis": "Microsoft Azure Foundations - Security"},
-    "AZURE-LOG-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.15"], "cis": "Microsoft Azure Foundations - Logging"},
-    "AZURE-LOG-002": {"nist_csf": ["DE.CM"], "iso_27001": ["8.15"], "cis": "Microsoft Azure Foundations - Logging"},
-    "GCP-IAM-001": {"nist_csf": ["PR.AA"], "iso_27001": ["5.15"], "cis": "Google Cloud Foundations - Identity"},
-    "GCP-IAM-002": {"nist_csf": ["PR.AA"], "iso_27001": ["5.16", "5.17"], "cis": "Google Cloud Foundations - Identity"},
-    "GCP-STORAGE-001": {"nist_csf": ["PR.AA", "PR.DS"], "iso_27001": ["5.15", "8.3"], "cis": "Google Cloud Foundations - Storage"},
-    "GCP-STORAGE-002": {"nist_csf": ["PR.AA"], "iso_27001": ["5.15"], "cis": "Google Cloud Foundations - Storage"},
-    "GCP-KMS-001": {"nist_csf": ["PR.DS"], "iso_27001": ["8.24"], "cis": "Google Cloud Foundations - Cryptography"},
-    "GCP-NET-001": {"nist_csf": ["PR.IR"], "iso_27001": ["8.20"], "cis": "Google Cloud Foundations - Networking"},
-    "GCP-LOG-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.15"], "cis": "Google Cloud Foundations - Logging"},
-    "GCP-LOG-002": {"nist_csf": ["DE.CM"], "iso_27001": ["8.15"], "cis": "Google Cloud Foundations - Logging"},
-    "GCP-SEC-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.16"], "cis": "Google Cloud Foundations - Monitoring"},
-    "LINUX-PATCH-001": {"nist_csf": ["PR.PS"], "iso_27001": ["8.8"], "cis": "CIS Linux Benchmarks - Patch Management"},
-    "LINUX-FW-001": {"nist_csf": ["PR.IR"], "iso_27001": ["8.20"], "cis": "CIS Linux Benchmarks - Host Firewall"},
-    "LINUX-SSH-001": {"nist_csf": ["PR.AA"], "iso_27001": ["5.15", "5.17"], "cis": "CIS Linux Benchmarks - SSH"},
-    "LINUX-SSH-002": {"nist_csf": ["PR.AA"], "iso_27001": ["5.17"], "cis": "CIS Linux Benchmarks - SSH"},
-    "WINDOWS-FW-001": {"nist_csf": ["PR.IR"], "iso_27001": ["8.20"], "cis": "CIS Microsoft Windows Benchmarks - Firewall"},
-    "WINDOWS-SMB-001": {"nist_csf": ["PR.PS"], "iso_27001": ["8.8", "8.9"], "cis": "CIS Microsoft Windows Benchmarks - Network Protocols"},
-    "WINDOWS-AUDIT-001": {"nist_csf": ["DE.CM"], "iso_27001": ["8.15"], "cis": "CIS Microsoft Windows Benchmarks - Audit Policy"},
-    "MACOS-FW-001": {"nist_csf": ["PR.IR"], "iso_27001": ["8.20"], "cis": "CIS Apple macOS Benchmark - Firewall"},
-    "MACOS-DISK-001": {"nist_csf": ["PR.DS"], "iso_27001": ["8.24"], "cis": "CIS Apple macOS Benchmark - FileVault"}
+    "AWS-ORG-001": {
+      "nist_csf": [
+        "ID.AM"
+      ],
+      "iso_27001": [
+        "5.9"
+      ],
+      "cis": "AWS Foundations - Inventory"
+    },
+    "AWS-ORG-CONFIG-001": {
+      "nist_csf": [
+        "DE.CM",
+        "PR.PS"
+      ],
+      "iso_27001": [
+        "8.9",
+        "8.15"
+      ],
+      "cis": "AWS Foundations - Monitoring"
+    },
+    "AWS-ORG-CT-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.15"
+      ],
+      "cis": "AWS Foundations - Logging"
+    },
+    "AWS-ORG-GD-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.16"
+      ],
+      "cis": "AWS Foundations - Monitoring"
+    },
+    "AWS-ORG-SH-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.16"
+      ],
+      "cis": "AWS Foundations - Monitoring"
+    },
+    "AWS-S3-001": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.3",
+        "8.9"
+      ],
+      "cis": "AWS Foundations - Storage"
+    },
+    "AWS-S3-002": {
+      "nist_csf": [
+        "PR.AA",
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "5.15",
+        "8.3"
+      ],
+      "cis": "AWS Foundations - Storage"
+    },
+    "AWS-S3-003": {
+      "nist_csf": [
+        "PR.AA",
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "5.15",
+        "8.3"
+      ],
+      "cis": "AWS Foundations - Storage"
+    },
+    "AWS-S3-004": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.3",
+        "8.9"
+      ],
+      "cis": "AWS Foundations - Storage"
+    },
+    "AWS-S3-005": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.24"
+      ],
+      "cis": "AWS Foundations - Storage"
+    },
+    "AWS-S3-006": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.13"
+      ],
+      "cis": "AWS Foundations - Storage"
+    },
+    "AWS-S3-007": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.15"
+      ],
+      "cis": "AWS Foundations - Logging"
+    },
+    "AWS-IAM-001": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.17"
+      ],
+      "cis": "AWS Foundations - IAM"
+    },
+    "AWS-IAM-002": {
+      "nist_csf": [
+        "PR.AA",
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "5.15",
+        "8.16"
+      ],
+      "cis": "AWS Foundations - IAM"
+    },
+    "AWS-CT-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.15"
+      ],
+      "cis": "AWS Foundations - Logging"
+    },
+    "AWS-CONFIG-001": {
+      "nist_csf": [
+        "DE.CM",
+        "PR.PS"
+      ],
+      "iso_27001": [
+        "8.9",
+        "8.15"
+      ],
+      "cis": "AWS Foundations - Monitoring"
+    },
+    "AWS-GD-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.16"
+      ],
+      "cis": "AWS Foundations - Monitoring"
+    },
+    "AWS-SH-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.16"
+      ],
+      "cis": "AWS Foundations - Monitoring"
+    },
+    "AWS-EC2-001": {
+      "nist_csf": [
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20"
+      ],
+      "cis": "AWS Foundations - Networking"
+    },
+    "AWS-EBS-001": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.24"
+      ],
+      "cis": "AWS Foundations - Storage"
+    },
+    "AWS-RDS-001": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.24"
+      ],
+      "cis": "AWS Foundations - Database"
+    },
+    "AWS-VPC-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.15"
+      ],
+      "cis": "AWS Foundations - Networking"
+    },
+    "AWS-KMS-001": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.24"
+      ],
+      "cis": "AWS Foundations - Cryptography"
+    },
+    "AZURE-IAM-001": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.15"
+      ],
+      "cis": "Microsoft Azure Foundations - Identity"
+    },
+    "AZURE-STORAGE-001": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.24"
+      ],
+      "cis": "Microsoft Azure Foundations - Storage"
+    },
+    "AZURE-STORAGE-002": {
+      "nist_csf": [
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20"
+      ],
+      "cis": "Microsoft Azure Foundations - Storage"
+    },
+    "AZURE-KV-001": {
+      "nist_csf": [
+        "PR.IR",
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.20",
+        "8.24"
+      ],
+      "cis": "Microsoft Azure Foundations - Key Vault"
+    },
+    "AZURE-SQL-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.15"
+      ],
+      "cis": "Microsoft Azure Foundations - Database"
+    },
+    "AZURE-NET-001": {
+      "nist_csf": [
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20"
+      ],
+      "cis": "Microsoft Azure Foundations - Networking"
+    },
+    "AZURE-SEC-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.16"
+      ],
+      "cis": "Microsoft Azure Foundations - Security"
+    },
+    "AZURE-LOG-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.15"
+      ],
+      "cis": "Microsoft Azure Foundations - Logging"
+    },
+    "AZURE-LOG-002": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.15"
+      ],
+      "cis": "Microsoft Azure Foundations - Logging"
+    },
+    "GCP-IAM-001": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.15"
+      ],
+      "cis": "Google Cloud Foundations - Identity"
+    },
+    "GCP-IAM-002": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.16",
+        "5.17"
+      ],
+      "cis": "Google Cloud Foundations - Identity"
+    },
+    "GCP-STORAGE-001": {
+      "nist_csf": [
+        "PR.AA",
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "5.15",
+        "8.3"
+      ],
+      "cis": "Google Cloud Foundations - Storage"
+    },
+    "GCP-STORAGE-002": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.15"
+      ],
+      "cis": "Google Cloud Foundations - Storage"
+    },
+    "GCP-KMS-001": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.24"
+      ],
+      "cis": "Google Cloud Foundations - Cryptography"
+    },
+    "GCP-NET-001": {
+      "nist_csf": [
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20"
+      ],
+      "cis": "Google Cloud Foundations - Networking"
+    },
+    "GCP-LOG-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.15"
+      ],
+      "cis": "Google Cloud Foundations - Logging"
+    },
+    "GCP-LOG-002": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.15"
+      ],
+      "cis": "Google Cloud Foundations - Logging"
+    },
+    "GCP-SEC-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.16"
+      ],
+      "cis": "Google Cloud Foundations - Monitoring"
+    },
+    "LINUX-FW-001": {
+      "nist_csf": [
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20"
+      ],
+      "cis": "CIS Linux Benchmarks - Host Firewall"
+    },
+    "LINUX-SSH-001": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.15",
+        "5.17"
+      ],
+      "cis": "CIS Linux Benchmarks - SSH"
+    },
+    "LINUX-SSH-002": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.17"
+      ],
+      "cis": "CIS Linux Benchmarks - SSH"
+    },
+    "LINUX-PATCH-001": {
+      "nist_csf": [
+        "PR.PS"
+      ],
+      "iso_27001": [
+        "8.8"
+      ],
+      "cis": "CIS Linux Benchmarks - Patch Management"
+    },
+    "MACOS-FW-001": {
+      "nist_csf": [
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20"
+      ],
+      "cis": "CIS Apple macOS Benchmark - Firewall"
+    },
+    "MACOS-GK-001": {
+      "nist_csf": [
+        "PR.PS"
+      ],
+      "iso_27001": [
+        "8.8"
+      ],
+      "cis": "CIS Apple macOS Benchmark - Gatekeeper"
+    },
+    "MACOS-PATCH-001": {
+      "nist_csf": [
+        "PR.PS"
+      ],
+      "iso_27001": [
+        "8.8"
+      ],
+      "cis": "CIS Apple macOS Benchmark - Updates"
+    },
+    "MACOS-AUTH-001": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.15"
+      ],
+      "cis": "CIS Apple macOS Benchmark - Accounts"
+    },
+    "MACOS-DISK-001": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.24"
+      ],
+      "cis": "CIS Apple macOS Benchmark - FileVault"
+    },
+    "WINDOWS-FW-001": {
+      "nist_csf": [
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20"
+      ],
+      "cis": "CIS Microsoft Windows Benchmarks - Firewall"
+    },
+    "WINDOWS-SMB-001": {
+      "nist_csf": [
+        "PR.PS"
+      ],
+      "iso_27001": [
+        "8.8",
+        "8.9"
+      ],
+      "cis": "CIS Microsoft Windows Benchmarks - Network Protocols"
+    },
+    "WINDOWS-AUTH-001": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.15"
+      ],
+      "cis": "CIS Microsoft Windows Benchmarks - Accounts"
+    },
+    "WINDOWS-AUDIT-001": {
+      "nist_csf": [
+        "DE.CM"
+      ],
+      "iso_27001": [
+        "8.15"
+      ],
+      "cis": "CIS Microsoft Windows Benchmarks - Audit Policy"
+    }
   }
 }

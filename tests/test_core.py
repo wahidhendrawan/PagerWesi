@@ -9,6 +9,7 @@ from cloud.core import (
     exit_code,
     plan_manifest,
     render_json,
+    render_sarif,
     summarize,
 )
 
@@ -60,3 +61,25 @@ def test_plan_manifest_contains_before_and_after(monkeypatch):
     assert manifest["plan_count"] == 1
     assert manifest["plans"][0]["before"] == {"enabled": False}
     assert manifest["plans"][0]["after"] == {"enabled": True}
+
+
+def test_sarif_enriched_with_control_metadata():
+    stream = StringIO()
+    finding = Finding(
+        "AWS-S3-001",
+        "Block public S3 access at account level",
+        Status.FAIL,
+        Severity.HIGH,
+        "aws:account:123456789012",
+        "NoSuchPublicAccessBlockConfiguration",
+        "Enable account-level S3 public access block.",
+    )
+    render_sarif([finding], stream)
+    sarif = json.loads(stream.getvalue())
+    driver = sarif["runs"][0]["tool"]["driver"]
+    assert driver["version"] == "0.4.0"
+    rule = driver["rules"][0]
+    assert rule["helpUri"].startswith("https://")
+    assert "tags" in rule["properties"]
+    assert any("nist-csf/" in tag for tag in rule["properties"]["tags"])
+    assert sarif["runs"][0]["results"][0]["properties"]["status"] == "fail"

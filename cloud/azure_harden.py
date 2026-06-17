@@ -415,4 +415,32 @@ def run_audit(args) -> list[Finding]:
                 )
             )
         findings.extend(_subscription_findings(credential, subscription, args))
+
+    if getattr(args, "mode", "audit") == "plan":
+        findings = _annotate_plan(findings)
     return findings
+
+
+def _annotate_plan(findings: list[Finding]) -> list[Finding]:
+    """Annotate FAIL findings with plan metadata for non-mutating plan mode."""
+    annotated = []
+    for f in findings:
+        if f.status == Status.FAIL:
+            annotated.append(
+                Finding(
+                    f.control_id,
+                    f.title,
+                    f.status,
+                    f.severity,
+                    f.resource,
+                    f.evidence,
+                    f.remediation,
+                    f.benchmark,
+                    planned=True,
+                    before={"compliant": False, "evidence": f.evidence},
+                    after={"compliant": True, "recommendation": f.remediation},
+                )
+            )
+        else:
+            annotated.append(f)
+    return annotated
