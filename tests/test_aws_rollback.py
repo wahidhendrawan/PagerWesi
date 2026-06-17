@@ -74,3 +74,68 @@ def test_rollback_rejects_non_aws_manifest(tmp_path):
         assert "AWS" in str(exc)
     else:
         raise AssertionError("ValueError was not raised")
+
+
+def test_rollback_ebs_encryption(tmp_path):
+    ec2 = MagicMock()
+    session = MagicMock()
+    session.client.side_effect = lambda name: {"ec2": ec2}[name]
+    changes = [
+        {
+            "control_id": "AWS-EBS-001",
+            "resource": "aws:account:123456789012",
+            "before": False,
+            "after": True,
+        }
+    ]
+    findings = rollback_manifest(session, _manifest(tmp_path, changes))
+    ec2.disable_ebs_encryption_by_default.assert_called_once()
+    assert findings[0].status == Status.PASS
+
+
+def test_rollback_access_analyzer(tmp_path):
+    analyzer = MagicMock()
+    session = MagicMock()
+    session.client.side_effect = lambda name: {"accessanalyzer": analyzer}[name]
+    changes = [
+        {
+            "control_id": "AWS-IAM-002",
+            "resource": "aws:account:123456789012",
+            "before": {"active_analyzers": 0},
+            "after": {"active_analyzers": 1, "analyzer_name": "automation-hardening-account"},
+        }
+    ]
+    findings = rollback_manifest(session, _manifest(tmp_path, changes))
+    analyzer.delete_analyzer.assert_called_once_with(analyzerName="automation-hardening-account")
+    assert findings[0].status == Status.PASS
+
+
+def test_rollback_vpc_flow_logs(tmp_path):
+    ec2 = MagicMock()
+    session = MagicMock()
+    session.client.side_effect = lambda name: {"ec2": ec2}[name]
+    changes = [
+        {
+            "control_id": "AWS-VPC-001",
+            "resource": "aws:account:123456789012",
+            "before": {"missing_flow_logs": ["vpc-1"]},
+            "after": {"flow_log_ids": ["fl-1", "fl-2"], "destination": "arn:aws:s3:::logs"},
+        }
+    ]
+    findings = rollback_manifest(session, _manifest(tmp_path, changes))
+    ec2.delete_flow_logs.assert_called_once_with(FlowLogIds=["fl-1", "fl-2"])
+    assert findings[0].status == Status.PASS
+
+
+def test_rollback_vpc_flow_logs_manual_when_no_ids(tmp_path):
+    session = MagicMock()
+    changes = [
+        {
+            "control_id": "AWS-VPC-001",
+            "resource": "aws:account:123456789012",
+            "before": {"missing_flow_logs": ["vpc-1"]},
+            "after": {"destination": "arn:aws:s3:::logs"},
+        }
+    ]
+    findings = rollback_manifest(session, _manifest(tmp_path, changes))
+    assert findings[0].status == Status.MANUAL
