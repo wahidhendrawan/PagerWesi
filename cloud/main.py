@@ -30,7 +30,11 @@ def build_parser() -> argparse.ArgumentParser:
         description="Audit cloud resources against a security baseline"
     )
     parser.add_argument(
-        "provider", choices=["aws", "azure", "gcp", "k8s", "all", "policy"]
+        "provider",
+        choices=[
+            "aws", "azure", "gcp", "k8s", "docker",
+            "secrets", "terraform", "network", "all", "policy",
+        ],
     )
     parser.add_argument("policy_action", nargs="?", choices=["validate"])
     parser.add_argument("--mode", choices=["audit", "plan", "apply", "rollback"], default="audit")
@@ -87,6 +91,24 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Acknowledge changes when --mode apply or rollback is used",
     )
+    parser.add_argument("--exceptions", type=Path, help="YAML exceptions/waivers file")
+    parser.add_argument("--notify", type=Path, help="YAML webhook notification config")
+    parser.add_argument(
+        "--export-compliance", choices=["soc2", "pci"],
+        help="Export compliance evidence for a framework",
+    )
+    parser.add_argument(
+        "--agent", action="store_true", help="Run in agent/daemon mode"
+    )
+    parser.add_argument("--interval", type=int, default=300, help="Agent poll interval (seconds)")
+    parser.add_argument(
+        "--generate-dashboard", type=Path,
+        help="Generate static HTML dashboard site to directory",
+    )
+    parser.add_argument(
+        "--endpoints", help="Comma-separated host:port for network scanner"
+    )
+    parser.add_argument("--path", type=Path, help="Path to scan (secrets/terraform)")
     return parser
 
 
@@ -126,6 +148,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.policy_action:
         print("[x] policy subcommands are only valid with provider 'policy'", file=sys.stderr)
         return 2
+    if args.agent:
+        from cloud.agent import run_agent
+        run_agent(args)
+        return 0
     if args.generate_playbook:
         from cloud.remediation import generate_playbook
         output = generate_playbook(args.generate_playbook, args.playbook_format)
@@ -224,12 +250,44 @@ def main(argv: Sequence[str] | None = None) -> int:
         except Exception as exc:
             print(f"[!] custom controls error: {exc}", file=sys.stderr)
 
+    if args.exceptions:
+        from cloud.exceptions import apply_exceptions, load_exceptions
+        try:
+            exceptions = load_exceptions(args.exceptions)
+            findings = apply_exceptions(findings, exceptions)
+        except Exception as exc:
+            print(f"[!] exceptions error: {exc}", file=sys.stderr)
+
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         with args.output.open("w", encoding="utf-8") as stream:
             write_report(findings, args.format, stream)
     else:
         write_report(findings, args.format, sys.stdout)
+    if args.export_compliance:
+        from cloud.compliance import export_evidence
+        evidence = export_evidence(findings, args.export_compliance)
+        if args.output:
+            (args.output.parent / f"{args.export_compliance}-evidence.json").write_text(
+                evidence, encoding="utf-8"
+            )
+        else:
+            sys.stdout.write(evidence)
+    if args.generate_dashboard:
+        from cloud.dashboard_gen import generate_dashboard
+        generate_dashboard(
+            [f.to_dict() for f in findings], str(args.generate_dashboard)
+        )
+        print(f"[+] dashboard: {args.generate_dashboard}/index.html")
+    if args.notify:
+        import yaml as _yaml
+
+        from cloud.webhooks import notify
+        try:
+            cfg = _yaml.safe_load(args.notify.read_text(encoding="utf-8"))
+            notify(cfg, findings)
+        except Exception as exc:
+            print(f"[!] notify error: {exc}", file=sys.stderr)
     if args.change_manifest:
         args.change_manifest.parent.mkdir(parents=True, exist_ok=True)
         args.change_manifest.write_text(
