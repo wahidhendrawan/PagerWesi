@@ -2,13 +2,13 @@
 boto3>=1.34,<2
 PyYAML>=6,<7
 azure-identity>=1.17,<2
-azure-mgmt-keyvault>=10,<11
+azure-mgmt-keyvault>=10,<15
 azure-mgmt-monitor>=7,<8
 azure-mgmt-network>=28,<31
 azure-mgmt-resource>=23,<26
 azure-mgmt-security>=7,<8
 azure-mgmt-sql>=3,<4
-azure-mgmt-storage>=22,<24
+azure-mgmt-storage>=22,<26
 azure-mgmt-subscription>=3,<4
 google-auth>=2.29,<3
 google-cloud-compute>=1.20,<2
