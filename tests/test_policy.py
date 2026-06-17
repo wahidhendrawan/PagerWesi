@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from cloud.policy import admin_ports, excluded, load_policy
+from cloud.policy import admin_ports, aws_setting, excluded, load_policy
 
 
 def test_policy_loads_ports_and_exclusions(tmp_path):
@@ -42,3 +42,16 @@ def test_policy_honors_empty_port_override(tmp_path):
     )
     args = SimpleNamespace(policy=load_policy(path))
     assert admin_ports(args, "azure", {"22"}) == set()
+
+
+def test_policy_loads_aws_apply_settings(tmp_path):
+    path = tmp_path / "policy.yml"
+    path.write_text(
+        """version: 1
+aws:
+  vpc_flow_log_destination_arn: arn:aws:s3:::central-logs
+""",
+        encoding="utf-8",
+    )
+    args = SimpleNamespace(policy=load_policy(path))
+    assert aws_setting(args, "vpc_flow_log_destination_arn") == "arn:aws:s3:::central-logs"

@@ -11,6 +11,9 @@ from cloud.providers.aws.organizations import (
     discover_active_accounts,
     session_in_region,
 )
+from cloud.providers.aws.services import (
+    check_aws_organization_services as _check_aws_organization_services,
+)
 from cloud.providers.aws.services import check_aws_services as _check_aws_services
 
 ALL_USERS = "http://acs.amazonaws.com/groups/global/AllUsers"
@@ -23,6 +26,10 @@ PUBLIC_BLOCK = {
 }
 CONTROL_IDS = {
     "AWS-ORG-001",
+    "AWS-ORG-CONFIG-001",
+    "AWS-ORG-CT-001",
+    "AWS-ORG-GD-001",
+    "AWS-ORG-SH-001",
     "AWS-S3-001",
     "AWS-S3-002",
     "AWS-S3-003",
@@ -41,6 +48,14 @@ CONTROL_IDS = {
     "AWS-RDS-001",
     "AWS-VPC-001",
     "AWS-KMS-001",
+}
+
+
+ORG_AGGREGATE_CONTROL_IDS = {
+    "AWS-ORG-CONFIG-001",
+    "AWS-ORG-CT-001",
+    "AWS-ORG-GD-001",
+    "AWS-ORG-SH-001",
 }
 
 
@@ -74,6 +89,12 @@ def _finding(
 
 def _selected(args, control_id: str) -> bool:
     return not args.control or control_id in args.control
+
+
+def _org_aggregate_selected(args) -> bool:
+    return bool(set(getattr(args, "control", [])) & ORG_AGGREGATE_CONTROL_IDS) or bool(
+        getattr(args, "organization_role", None)
+    )
 
 
 def _client_error_code(exc: Exception) -> str:
@@ -393,6 +414,7 @@ def _audit_organization_accounts(base_session, args, audit_runner=None) -> list[
         try:
             account_args = SimpleNamespace(**vars(args))
             account_args.organization_role = None
+            account_args._skip_org_services = True
             account_args._session = assumed_session(
                 base_session, account_id, args.organization_role, args.external_id
             )
@@ -442,20 +464,23 @@ def run_audit(args=None) -> list[Finding]:
             findings.extend(run_audit(profile_args))
         return sorted(findings, key=lambda item: (item.resource, item.control_id))
 
-    base_session = boto3.Session(profile_name=args.profile, region_name=args.region)
-    if getattr(args, "organization_role", None):
-        return _audit_organization_accounts(base_session, args)
-
     injected_session = getattr(args, "_session", None)
+    base_session = boto3.Session(profile_name=args.profile, region_name=args.region)
     if injected_session is not None:
         base_session = injected_session
     sts = base_session.client("sts")
     account_id = sts.get_caller_identity()["Account"]
+    if getattr(args, "organization_role", None):
+        findings = _check_aws_organization_services(base_session, account_id, args)
+        findings.extend(_audit_organization_accounts(base_session, args))
+        return sorted(findings, key=lambda item: (item.resource, item.control_id))
     configured_regions = [
         item.strip() for item in (getattr(args, "regions", None) or "").split(",") if item.strip()
     ]
     regions = configured_regions or [args.region or base_session.region_name or "us-east-1"]
     findings = []
+    if not getattr(args, "_skip_org_services", False) and _org_aggregate_selected(args):
+        findings.extend(_check_aws_organization_services(base_session, account_id, args))
     for region in regions:
         session = (
             session_in_region(base_session, region)
