@@ -59,6 +59,18 @@ to an exact licensed benchmark version before this project is used for formal co
 | WINDOWS-SMB-001 | Windows | Disable SMBv1 | Disables optional feature |
 | WINDOWS-AUTH-001 | Windows | Disable RID-501 guest account | Applies setting |
 | WINDOWS-AUDIT-001 | Windows | Enable logon and process auditing | Applies setting |
+| K8S-NET-001 | Kubernetes | Every namespace has at least one NetworkPolicy | Report only |
+| K8S-RBAC-001 | Kubernetes | No cluster-admin bindings to non-system ServiceAccounts | Report only |
+| K8S-POD-001 | Kubernetes | No pods running as privileged | Report only |
+| K8S-SEC-001 | Kubernetes | Pod Security Standards enforcement is configured | Report only |
+| FBSD-FW-001 | FreeBSD | Enable PF firewall | Enables PF in rc.conf |
+| FBSD-SSH-001 | FreeBSD | Disable SSH root login | Updates sshd_config |
+| FBSD-SSH-002 | FreeBSD | Disable SSH empty passwords | Updates sshd_config |
+| FBSD-PATCH-001 | FreeBSD | Apply available security patches | Report only |
+| ALPINE-USER-001 | Alpine/Container | Non-root user exists for container execution | Creates non-root user |
+| ALPINE-PKG-001 | Alpine/Container | No known vulnerable packages | Upgrades packages |
+| ALPINE-FS-001 | Alpine/Container | Read-only root filesystem | Report only |
+| ALPINE-SHELL-001 | Alpine/Container | No unnecessary shell accounts | Report only |
 
 ## Known Gaps
 

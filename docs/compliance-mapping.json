@@ -511,6 +511,115 @@
         "8.15"
       ],
       "cis": "CIS Microsoft Windows Benchmarks - Audit Policy"
+    },
+    "K8S-NET-001": {
+      "nist_csf": [
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20"
+      ],
+      "cis": "CIS Kubernetes Benchmark - Network"
+    },
+    "K8S-RBAC-001": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.15"
+      ],
+      "cis": "CIS Kubernetes Benchmark - RBAC"
+    },
+    "K8S-POD-001": {
+      "nist_csf": [
+        "PR.PS"
+      ],
+      "iso_27001": [
+        "8.8"
+      ],
+      "cis": "CIS Kubernetes Benchmark - Pod Security"
+    },
+    "K8S-SEC-001": {
+      "nist_csf": [
+        "PR.PS"
+      ],
+      "iso_27001": [
+        "8.8"
+      ],
+      "cis": "CIS Kubernetes Benchmark - Pod Security"
+    },
+    "FBSD-FW-001": {
+      "nist_csf": [
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20"
+      ],
+      "cis": "CIS FreeBSD Benchmark - Firewall"
+    },
+    "FBSD-SSH-001": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.15",
+        "5.17"
+      ],
+      "cis": "CIS FreeBSD Benchmark - SSH"
+    },
+    "FBSD-SSH-002": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.17"
+      ],
+      "cis": "CIS FreeBSD Benchmark - SSH"
+    },
+    "FBSD-PATCH-001": {
+      "nist_csf": [
+        "PR.PS"
+      ],
+      "iso_27001": [
+        "8.8"
+      ],
+      "cis": "CIS FreeBSD Benchmark - Patch Management"
+    },
+    "ALPINE-USER-001": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.15"
+      ],
+      "cis": "Container Security - User"
+    },
+    "ALPINE-PKG-001": {
+      "nist_csf": [
+        "PR.PS"
+      ],
+      "iso_27001": [
+        "8.8"
+      ],
+      "cis": "Container Security - Packages"
+    },
+    "ALPINE-FS-001": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.9"
+      ],
+      "cis": "Container Security - Filesystem"
+    },
+    "ALPINE-SHELL-001": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.15"
+      ],
+      "cis": "Container Security - Accounts"
     }
   }
 }
