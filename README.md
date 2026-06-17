@@ -18,8 +18,8 @@ examples are in [docs/provider-permissions.md](docs/provider-permissions.md).
 | macOS | Yes | Yes | Yes | Text |
 | Windows | Yes | Yes | Yes | JSON |
 | AWS | Yes | Yes | Limited | Text, JSON, SARIF |
-| Azure | Inventory baseline | No changes | No changes | Text, JSON, SARIF |
-| GCP | Inventory baseline | No changes | No changes | Text, JSON, SARIF |
+| Azure | Yes | Yes | — | Text, JSON, SARIF |
+| GCP | Yes | Yes | — | Text, JSON, SARIF |
 
 Controls are project baselines inspired by common CIS recommendations. They are **not a claim of
 CIS certification**. See [docs/controls.md](docs/controls.md) for scope and limitations.
@@ -64,6 +64,10 @@ automation-hardening aws --mode apply --yes \
 automation-hardening aws --mode rollback --yes \
   --rollback-manifest reports/aws-changes.json
 
+# Azure/GCP plan mode (non-mutating)
+automation-hardening azure --mode plan --plan-manifest reports/azure-plan.json
+automation-hardening gcp --mode plan --plan-manifest reports/gcp-plan.json
+
 # Apply validated policy overrides and documented resource exclusions
 automation-hardening policy validate --policy policy.example.yml
 automation-hardening aws --policy policy.example.yml
@@ -81,24 +85,40 @@ supported S3 settings, EBS encryption by default, IAM Access Analyzer, and VPC F
 policy destination ARN is configured. It does not rewrite bucket policies, ACLs, broader logging
 architecture, or paid security service plans.
 
-Plan manifests contain the proposed before/after values and do not call mutation APIs. During
-AWS Organizations audits, an inaccessible member account is reported without stopping assessment
-of the remaining accounts.
+Plan manifests contain the proposed before/after values and do not call mutation APIs. Azure and GCP
+plan mode generates non-mutating plan manifests showing recommended changes. During AWS
+Organizations audits, an inaccessible member account is reported without stopping assessment of the
+remaining accounts.
 
-Rollback restores account/bucket Public Access Block and default encryption from manifest `before`
-values. AWS cannot return a versioned bucket to its never-enabled state, so versioning rollback is
-reported as `MANUAL` with a nonzero exit code. Review the manifest and use least-privilege
-credentials before confirming rollback.
+Rollback restores account/bucket Public Access Block, default encryption, EBS encryption-by-default
+changes, tool-created IAM Access Analyzers, and VPC Flow Logs from manifest values. AWS cannot
+return a versioned bucket to its never-enabled state, so versioning rollback is reported as `MANUAL`
+with a nonzero exit code. Review the manifest and use least-privilege credentials before confirming
+rollback.
 
 Policy files use `version: 1` and can override Azure/GCP administrative ports or exclude resources
 with shell-style patterns. Exclusions are emitted as `SKIP` findings rather than silently omitted;
-see [policy.example.yml](policy.example.yml).
+see [policy.example.yml](policy.example.yml). Policy validation uses JSON Schema and reports precise
+error paths.
 
 Azure audits Storage TLS and network rules, Key Vault public access, SQL auditing, NSG
 administrative exposure, Defender plans, activity log exports, and diagnostic settings. GCP audits
 public bucket IAM, uniform bucket access, service-account user-managed keys, KMS rotation, firewall
 administrative exposure, logging sinks, and audit logging; Security Command Center remains an
 organization-level manual control.
+
+## Container
+
+A pre-built container image is published to GHCR on every version tag:
+
+```bash
+docker pull ghcr.io/wahidhendrawan/automation-hardening:latest
+
+docker run --rm \
+  -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION \
+  ghcr.io/wahidhendrawan/automation-hardening:latest \
+  aws --format sarif --output /dev/stdout
+```
 
 ## Operating Systems
 
@@ -140,12 +160,13 @@ make test
 make lint
 make security
 make test-os
+make docs
 ```
 
 CI checks Python 3.10/3.12, Ruff, pytest coverage, ShellCheck, Linux audit/plan smoke tests,
-PowerShell parsing, CodeQL, and pull-request dependency review. Version tags build a GitHub Release
-with Python artifacts, checksums, CycloneDX SBOM, and provenance attestation. See
-[CONTRIBUTING.md](CONTRIBUTING.md).
+PowerShell parsing, CodeQL, pull-request dependency review, and integration tests with LocalStack.
+Version tags build a GitHub Release with Python artifacts, checksums, CycloneDX SBOM, container
+image, and provenance attestation. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Control relationships to NIST CSF 2.0, ISO/IEC 27001:2022 Annex A, and CIS benchmark families are
 documented in [docs/compliance-mapping.json](docs/compliance-mapping.json). These mappings are

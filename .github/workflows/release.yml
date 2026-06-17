@@ -9,6 +9,7 @@ permissions:
   contents: write
   id-token: write
   attestations: write
+  packages: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -18,13 +19,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e '.[aws,azure,gcp,dev]'
       - run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - run: python scripts/generate_control_docs.py
+      - run: git diff --exit-code docs/controls.md docs/compliance-mapping.json
       - run: make test typecheck lint security
       - run: python -m build
       - name: Smoke test built wheel
@@ -49,3 +52,42 @@ jobs:
         with:
           generate_release_notes: true
           files: dist/*
+
+  container:
+    runs-on: ubuntu-latest
+    needs: release
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/automation-hardening
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      - name: Attest container provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/automation-hardening
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true

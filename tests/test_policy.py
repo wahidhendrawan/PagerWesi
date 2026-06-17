@@ -29,7 +29,7 @@ def test_policy_rejects_invalid_ports(tmp_path):
     try:
         load_policy(path)
     except ValueError as exc:
-        assert "1 through 65535" in str(exc)
+        assert "schema" in str(exc).lower() or "type" in str(exc).lower()
     else:
         raise AssertionError("ValueError was not raised")
 

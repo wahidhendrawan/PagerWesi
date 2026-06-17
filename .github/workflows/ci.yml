@@ -18,7 +18,7 @@ jobs:
         python-version: ["3.10", "3.12"]
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -26,6 +26,8 @@ jobs:
       - run: python -m pip install -e '.[aws,azure,gcp,dev]'
       - run: ruff check .
       - run: mypy cloud
+      - run: python scripts/generate_control_docs.py
+      - run: git diff --exit-code docs/controls.md docs/compliance-mapping.json
       - run: pytest --cov=cloud --cov-report=term-missing
       - run: python -m compileall -q cloud tests
 
@@ -81,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
