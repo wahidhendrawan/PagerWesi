@@ -4,8 +4,9 @@ Security baseline auditing and controlled remediation for Linux, Windows, macOS,
 and GCP. Every entry point defaults to **audit-only** behavior. Review findings and test changes
 in a disposable environment before using apply mode.
 
-Promotional website assets are available in [docs/index.html](docs/index.html) and can be deployed
-through the included GitHub Pages workflow.
+Promotional website and documentation are published at
+**<https://wahidhendrawan.github.io/Automation-Hardening/>** via the included GitHub Pages workflow.
+Source assets are in [docs/index.html](docs/index.html).
 
 For a short setup path, start with [docs/quickstart.md](docs/quickstart.md). Provider permission
 examples are in [docs/provider-permissions.md](docs/provider-permissions.md).
@@ -19,11 +20,15 @@ examples are in [docs/provider-permissions.md](docs/provider-permissions.md).
 | Windows | Yes | Yes | Yes | JSON |
 | FreeBSD | Yes | Yes | Yes | Text |
 | Alpine/Container | Yes | Yes | Limited | Text |
-| AWS | Yes | Yes | Limited | Text, JSON, SARIF |
-| Azure | Yes | Yes | — | Text, JSON, SARIF |
-| GCP | Yes | Yes | — | Text, JSON, SARIF |
-| Kubernetes | Yes | Yes | — | Text, JSON, SARIF |
-| **All (unified)** | Yes | Yes | — | Text, JSON, SARIF |
+| AWS | Yes | Yes | Limited | Text, JSON, SARIF, HTML |
+| Azure | Yes | Yes | — | Text, JSON, SARIF, HTML |
+| GCP | Yes | Yes | — | Text, JSON, SARIF, HTML |
+| Kubernetes | Yes | Yes | — | Text, JSON, SARIF, HTML |
+| Docker | Yes | Yes | — | Text, JSON, SARIF, HTML |
+| Secrets | Yes | — | — | Text, JSON, SARIF, HTML |
+| Terraform | Yes | — | — | Text, JSON, SARIF, HTML |
+| Network/TLS | Yes | — | — | Text, JSON, SARIF, HTML |
+| **All (unified)** | Yes | Yes | — | Text, JSON, SARIF, HTML |
 
 Controls are project baselines inspired by common CIS recommendations. They are **not a claim of
 CIS certification**. See [docs/controls.md](docs/controls.md) for scope and limitations.
