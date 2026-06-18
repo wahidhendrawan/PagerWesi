@@ -81,6 +81,21 @@ Policy files can override Azure/GCP administrative ports and mark known resource
 Excluded resources are emitted as `SKIP` findings. Validation uses JSON Schema and reports precise
 error paths. See [policy.schema.json](policy.schema.json) for the reusable policy schema.
 
+## Local Scanners
+
+Run local scanners with an explicit scope:
+
+```bash
+automation-hardening docker --format json --output reports/docker.json
+automation-hardening secrets --path . --format json --output reports/secrets.json
+automation-hardening terraform --path tfplan.json --format json --output reports/terraform.json
+automation-hardening network --endpoints example.com:443 --format json --output reports/network.json
+```
+
+The `all` provider runs the core cloud provider set: AWS, Azure, GCP, and Kubernetes. Docker,
+secrets, Terraform, and network/TLS checks stay explicit because they need a selected local path or
+endpoint list.
+
 ## Permissions
 
 See [provider-permissions.md](provider-permissions.md) for audit and apply permission examples.

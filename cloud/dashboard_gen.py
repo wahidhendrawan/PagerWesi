@@ -1,6 +1,14 @@
 from __future__ import annotations
 
+from html import escape
 from pathlib import Path
+
+from cloud.finding_utils import (
+    finding_control_id,
+    finding_provider,
+    finding_value,
+    normalized_status,
+)
 
 CSS = """
 body { font-family: system-ui, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
@@ -34,14 +42,16 @@ def _wrap(title: str, body: str) -> str:
 
 def _gen_index(findings: list[dict]) -> str:
     total = len(findings)
-    fails = sum(1 for f in findings if f.get("status") == "FAIL")
-    passes = total - fails
+    fails = sum(1 for f in findings if normalized_status(f) == "fail")
+    errors = sum(1 for f in findings if normalized_status(f) == "error")
+    passes = sum(1 for f in findings if normalized_status(f) == "pass")
     body = (
         f"<h1>Automation Hardening Dashboard</h1>"
         f"<div class='card'><h2>Summary</h2>"
         f"<p>Total: {total} | "
         f"<span class='badge badge-pass'>PASS: {passes}</span> | "
-        f"<span class='badge badge-fail'>FAIL: {fails}</span></p></div>"
+        f"<span class='badge badge-fail'>FAIL: {fails}</span> | "
+        f"<span class='badge badge-fail'>ERROR: {errors}</span></p></div>"
     )
     return _wrap("Dashboard", body)
 
@@ -49,12 +59,17 @@ def _gen_index(findings: list[dict]) -> str:
 def _gen_controls(findings: list[dict]) -> str:
     rows = ""
     for f in findings:
-        status = f.get("status", "UNKNOWN")
-        cls = "badge-fail" if status == "FAIL" else "badge-pass"
+        status = normalized_status(f) or "unknown"
+        cls = "badge-fail" if status in {"fail", "error"} else "badge-pass"
+        message = (
+            finding_value(f, "message")
+            or finding_value(f, "evidence")
+            or finding_value(f, "title", "")
+        )
         rows += (
-            f"<tr><td>{f.get('control', '')}</td>"
-            f"<td><span class='badge {cls}'>{status}</span></td>"
-            f"<td>{f.get('message', '')}</td></tr>"
+            f"<tr><td>{escape(finding_control_id(f))}</td>"
+            f"<td><span class='badge {cls}'>{escape(status.upper())}</span></td>"
+            f"<td>{escape(str(message))}</td></tr>"
         )
     body = (
         f"<h1>Controls</h1><div class='card'><table>"
@@ -67,16 +82,18 @@ def _gen_controls(findings: list[dict]) -> str:
 def _gen_providers(findings: list[dict]) -> str:
     providers: dict[str, list[dict]] = {}
     for f in findings:
-        p = f.get("provider", "unknown")
+        p = finding_provider(f)
         providers.setdefault(p, []).append(f)
 
     body = "<h1>Providers</h1>"
     for name, items in sorted(providers.items()):
-        fails = sum(1 for i in items if i.get("status") == "FAIL")
+        fails = sum(1 for i in items if normalized_status(i) == "fail")
+        errors = sum(1 for i in items if normalized_status(i) == "error")
         body += (
-            f"<div class='card'><h2>{name}</h2>"
+            f"<div class='card'><h2>{escape(name)}</h2>"
             f"<p>Checks: {len(items)} | "
-            f"<span class='badge badge-fail'>FAIL: {fails}</span></p></div>"
+            f"<span class='badge badge-fail'>FAIL: {fails}</span> | "
+            f"<span class='badge badge-fail'>ERROR: {errors}</span></p></div>"
         )
     return _wrap("Providers", body)
 

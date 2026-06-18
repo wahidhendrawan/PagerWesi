@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
-from cloud.control_registry import CONTROL_METADATA
-
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from cloud.control_registry import CONTROL_METADATA  # noqa: E402
 
 _PREAMBLE = (
     "The benchmark field currently identifies `Project baseline v1`. "
