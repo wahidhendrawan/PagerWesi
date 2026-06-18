@@ -1,6 +1,10 @@
 import json
 from io import StringIO
+from pathlib import Path
 
+import jsonschema
+
+from cloud import core
 from cloud.core import (
     Finding,
     Severity,
@@ -12,6 +16,8 @@ from cloud.core import (
     render_sarif,
     summarize,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_summary_and_exit_codes():
@@ -28,6 +34,28 @@ def test_json_is_machine_readable():
     stream = StringIO()
     render_json([Finding("A", "title", Status.PASS, Severity.INFO, "r", "e")], stream)
     assert json.loads(stream.getvalue())["summary"]["pass"] == 1
+
+
+def test_finding_json_schema_matches_rendered_findings():
+    schema = json.loads((ROOT / "docs" / "finding.schema.json").read_text(encoding="utf-8"))
+    finding = Finding(
+        "AWS-S3-001",
+        "Block public S3 access at account level",
+        Status.FAIL,
+        Severity.HIGH,
+        "aws:account:123456789012",
+        "NoSuchPublicAccessBlockConfiguration",
+        "Enable account-level S3 public access block.",
+        planned=True,
+        before={"enabled": False},
+        after={"enabled": True},
+    )
+    stream = StringIO()
+    render_json([finding], stream)
+    rendered = json.loads(stream.getvalue())["findings"][0]
+
+    assert set(rendered) == {field.name for field in core.Finding.__dataclass_fields__.values()}
+    jsonschema.Draft202012Validator(schema).validate(rendered)
 
 
 def test_change_manifest_contains_only_actual_changes(monkeypatch):

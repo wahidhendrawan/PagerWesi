@@ -83,6 +83,10 @@ automation-hardening aws --policy policy.example.yml
 
 # SARIF for GitHub code scanning ingestion
 automation-hardening aws --format sarif --output reports/aws.sarif
+
+# Static dashboard and compliance evidence
+automation-hardening aws --generate-dashboard reports/site
+automation-hardening aws --export-compliance soc2 --output reports/aws.json
 ```
 
 Exit codes are `0` for no failed/error findings, `1` for failed controls, and `2` for execution or
@@ -116,6 +120,10 @@ public bucket IAM, uniform bucket access, service-account user-managed keys, KMS
 administrative exposure, logging sinks, and audit logging; Security Command Center remains an
 organization-level manual control.
 
+JSON findings follow the reusable schema in [docs/finding.schema.json](docs/finding.schema.json).
+Use it to validate downstream ingestion for dashboards, SIEM pipelines, evidence stores, and
+custom webhook processors.
+
 ## Container
 
 A pre-built container image is published to GHCR on every version tag:
@@ -139,6 +147,27 @@ automation-hardening k8s --mode plan --plan-manifest reports/k8s-plan.json
 
 Checks NetworkPolicy coverage, cluster-admin RBAC bindings, privileged pods, and Pod Security
 Standards enforcement. Connects via in-cluster config or `~/.kube/config`.
+
+## Docker, Secrets, Terraform, and Network/TLS
+
+Local scanners require explicit operator scope:
+
+```bash
+# Docker daemon/container posture
+automation-hardening docker --format json --output reports/docker.json
+
+# Source-tree secret detection; prefer a narrow path in CI
+automation-hardening secrets --path ./src --format json --output reports/secrets.json
+
+# Terraform plan review; generate JSON first
+terraform plan -out=tfplan
+terraform show -json tfplan > tfplan.json
+automation-hardening terraform --path tfplan.json --format json --output reports/terraform.json
+
+# TLS and endpoint exposure checks
+automation-hardening network --endpoints example.com:443,api.example.com:443 \
+  --format json --output reports/network.json
+```
 
 ## Core Cloud Unified Report
 
@@ -254,6 +283,19 @@ Terraform plan, or network/TLS evidence.
 
 A scheduled workflow runs daily, audits the core cloud provider set, and creates a GitHub Issue if
 controls are failing. See `.github/workflows/drift-detection.yml`.
+
+## Agent Mode
+
+Agent mode runs periodic audits and can send webhook notifications when new failures or provider
+errors appear:
+
+```bash
+automation-hardening aws --agent --interval 300 --watch-providers aws,azure,gcp,k8s \
+  --notify notify.yml
+```
+
+Provider runtime failures are emitted as `AGENT-PROVIDER-001` error findings instead of being
+silently ignored.
 
 ## Development
 

@@ -180,3 +180,30 @@ def test_rollback_manual_result_is_nonzero(tmp_path):
             )
             == 1
         )
+
+
+def test_all_provider_runs_core_cloud_only():
+    modules = {}
+    for provider in ("aws", "azure", "gcp", "k8s"):
+        module = MagicMock()
+        module.run_audit.return_value = [finding()]
+        modules[provider] = module
+
+    def fake_load_provider(provider):
+        if provider in {"docker", "secrets", "terraform", "network"}:
+            raise AssertionError(f"{provider} should stay explicit")
+        return modules[provider]
+
+    with patch("cloud.main.load_provider", side_effect=fake_load_provider):
+        assert main(["all", "--format", "json"]) == 0
+
+    assert set(modules) == {"aws", "azure", "gcp", "k8s"}
+    for module in modules.values():
+        module.run_audit.assert_called_once()
+
+
+def test_agent_mode_returns_agent_exit_code():
+    with patch("cloud.agent.run_agent", return_value=7) as run_agent:
+        assert main(["aws", "--agent", "--watch-providers", "aws,gcp"]) == 7
+    args = run_agent.call_args.args[0]
+    assert args.watch_providers == "aws,gcp"
