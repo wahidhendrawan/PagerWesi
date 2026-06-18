@@ -3,7 +3,7 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "automation-hardening"
+name = "pagerwesi"
 version = "0.8.0"
 description = "Cross-platform security baseline auditing and controlled remediation"
 readme = "README.md"
@@ -44,7 +44,7 @@ dev = [
 k8s = ["kubernetes>=29,<37"]
 
 [project.scripts]
-automation-hardening = "cloud.main:main"
+pagerwesi = "cloud.main:main"
 
 [tool.setuptools]
 include-package-data = false

@@ -32,9 +32,9 @@ jobs:
       - run: python -m build
       - name: Smoke test built wheel
         run: |
-          python -m venv /tmp/automation-hardening-release
-          /tmp/automation-hardening-release/bin/pip install dist/*.whl
-          /tmp/automation-hardening-release/bin/automation-hardening --help
+          python -m venv /tmp/pagerwesi-release
+          /tmp/pagerwesi-release/bin/pip install dist/*.whl
+          /tmp/pagerwesi-release/bin/pagerwesi --help
       - name: Create checksums
         run: sha256sum dist/* > dist/SHA256SUMS
       - name: Generate SBOM
@@ -73,7 +73,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository_owner }}/automation-hardening
+          images: ghcr.io/${{ github.repository_owner }}/pagerwesi
           tags: |
             type=ref,event=tag
             type=raw,value=latest
@@ -88,6 +88,6 @@ jobs:
       - name: Attest container provenance
         uses: actions/attest-build-provenance@v4
         with:
-          subject-name: ghcr.io/${{ github.repository_owner }}/automation-hardening
+          subject-name: ghcr.io/${{ github.repository_owner }}/pagerwesi
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true

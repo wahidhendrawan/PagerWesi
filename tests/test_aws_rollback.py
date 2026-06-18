@@ -102,11 +102,11 @@ def test_rollback_access_analyzer(tmp_path):
             "control_id": "AWS-IAM-002",
             "resource": "aws:account:123456789012",
             "before": {"active_analyzers": 0},
-            "after": {"active_analyzers": 1, "analyzer_name": "automation-hardening-account"},
+            "after": {"active_analyzers": 1, "analyzer_name": "pagerwesi-account"},
         }
     ]
     findings = rollback_manifest(session, _manifest(tmp_path, changes))
-    analyzer.delete_analyzer.assert_called_once_with(analyzerName="automation-hardening-account")
+    analyzer.delete_analyzer.assert_called_once_with(analyzerName="pagerwesi-account")
     assert findings[0].status == Status.PASS
 
 

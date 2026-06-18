@@ -1,5 +1,5 @@
 repos:
-  - repo: https://github.com/wahidhendrawan/Automation-Hardening
+  - repo: https://github.com/wahidhendrawan/PagerWesi
     rev: v0.7.0
     hooks:
-      - id: automation-hardening-audit
+      - id: pagerwesi-audit

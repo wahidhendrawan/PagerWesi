@@ -1,6 +1,6 @@
-- id: automation-hardening-audit
-  name: Automation Hardening Audit
-  entry: automation-hardening
+- id: pagerwesi-audit
+  name: PagerWesi Audit
+  entry: pagerwesi
   language: python
   types: [file]
   pass_filenames: false

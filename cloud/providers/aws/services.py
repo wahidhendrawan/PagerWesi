@@ -350,8 +350,8 @@ def check_aws_services(session, account_id: str, args) -> list[Finding]:
             planned = not active and args.mode == "plan"
             applied = not active and args.mode == "apply"
             if applied:
-                client.create_analyzer(analyzerName="automation-hardening-account", type="ACCOUNT")
-                active = ["automation-hardening-account"]
+                client.create_analyzer(analyzerName="pagerwesi-account", type="ACCOUNT")
+                active = ["pagerwesi-account"]
             findings.append(
                 _finding(
                     "AWS-IAM-002",

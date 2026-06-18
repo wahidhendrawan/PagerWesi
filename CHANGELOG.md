@@ -11,7 +11,7 @@
   finding dictionaries consistently.
 - Completed control metadata coverage for Docker, secrets, Terraform plan, and network/TLS
   scanners.
-- Clarified that `automation-hardening all` runs the core cloud provider set only: AWS, Azure, GCP,
+- Clarified that `pagerwesi all` runs the core cloud provider set only: AWS, Azure, GCP,
   and Kubernetes.
 - Pinned the LocalStack integration image to avoid upstream `latest` license-token drift.
 - Added community health files and updated project licensing metadata to GPL-3.0-or-later.
@@ -52,7 +52,7 @@
 - Added Kubernetes security controls: NetworkPolicy, RBAC, privileged pods, Pod Security Standards.
 - Added FreeBSD audit/plan/apply script (PF firewall, SSH hardening, security patches).
 - Added Alpine/container OS audit script (non-root user, package audit, read-only fs, shells).
-- Added multi-cloud unified report: `automation-hardening all` runs all providers in one report.
+- Added multi-cloud unified report: `pagerwesi all` runs all providers in one report.
 - Added Azure/GCP plan mode (non-mutating) with plan manifest generation.
 - Added `kubernetes` optional dependency group.
 - Expanded control registry with K8S, FreeBSD, and Alpine controls.
@@ -85,7 +85,7 @@
 ## 0.3.1 - 2026-06-17
 
 - Added a standalone quickstart guide and linked it from README and the promotional website.
-- Added `automation-hardening policy validate --policy PATH`.
+- Added `pagerwesi policy validate --policy PATH`.
 - Added AWS controls for EBS encryption by default, RDS storage encryption, VPC Flow Logs, and IAM
   Access Analyzer.
 - Added Azure controls for Key Vault public access, SQL auditing, and diagnostic settings.
