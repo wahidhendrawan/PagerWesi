@@ -63,6 +63,18 @@ to an exact licensed benchmark version before this project is used for formal co
 | K8S-RBAC-001 | Kubernetes | No cluster-admin bindings to non-system ServiceAccounts | Report only |
 | K8S-POD-001 | Kubernetes | No pods running as privileged | Report only |
 | K8S-SEC-001 | Kubernetes | Pod Security Standards enforcement is configured | Report only |
+| DOCKER-DAEMON-001 | Docker | Docker daemon TLS is enabled | Report only |
+| DOCKER-DAEMON-002 | Docker | User namespace remapping is enabled | Report only |
+| DOCKER-NET-001 | Docker | No running containers use host networking | Report only |
+| DOCKER-IMG-001 | Docker | Running containers do not use floating latest image tags | Report only |
+| SECRETS-001 | Source tree | No hardcoded secrets are present in scanned files | Report only |
+| TF-SEC-001 | Terraform plan | Security group changes do not allow unrestricted ingress | Report only |
+| TF-SEC-002 | Terraform plan | S3 bucket changes do not configure public ACLs | Report only |
+| TF-SEC-003 | Terraform plan | IAM policy changes avoid wildcard actions | Report only |
+| TF-SEC-004 | Terraform plan | Resource changes include encryption at rest where supported | Report only |
+| NET-TLS-001 | Network endpoint | TLS endpoints negotiate TLS 1.2 or higher | Report only |
+| NET-TLS-002 | Network endpoint | TLS endpoints present a valid certificate | Report only |
+| NET-PORT-001 | Network endpoint | No unexpected open ports are reachable | Report only |
 | FBSD-FW-001 | FreeBSD | Enable PF firewall | Enables PF in rc.conf |
 | FBSD-SSH-001 | FreeBSD | Disable SSH root login | Updates sshd_config |
 | FBSD-SSH-002 | FreeBSD | Disable SSH empty passwords | Updates sshd_config |

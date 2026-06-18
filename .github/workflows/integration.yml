@@ -22,7 +22,8 @@ jobs:
     continue-on-error: true
     services:
       localstack:
-        image: localstack/localstack:latest
+        # Keep this pinned: recent `latest` images can require a LocalStack auth token.
+        image: localstack/localstack:3.8.1
         ports:
           - 4566:4566
         env:
