@@ -548,6 +548,122 @@
       ],
       "cis": "CIS Kubernetes Benchmark - Pod Security"
     },
+    "DOCKER-DAEMON-001": {
+      "nist_csf": [
+        "PR.DS",
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20",
+        "8.24"
+      ],
+      "cis": "CIS Docker Benchmark - Docker daemon"
+    },
+    "DOCKER-DAEMON-002": {
+      "nist_csf": [
+        "PR.AA",
+        "PR.PS"
+      ],
+      "iso_27001": [
+        "5.15",
+        "8.8"
+      ],
+      "cis": "CIS Docker Benchmark - Docker daemon"
+    },
+    "DOCKER-NET-001": {
+      "nist_csf": [
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20"
+      ],
+      "cis": "CIS Docker Benchmark - Networking"
+    },
+    "DOCKER-IMG-001": {
+      "nist_csf": [
+        "PR.PS"
+      ],
+      "iso_27001": [
+        "8.8"
+      ],
+      "cis": "CIS Docker Benchmark - Images"
+    },
+    "SECRETS-001": {
+      "nist_csf": [
+        "PR.DS",
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.15",
+        "8.12"
+      ],
+      "cis": "Secrets Management - Source scanning"
+    },
+    "TF-SEC-001": {
+      "nist_csf": [
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20"
+      ],
+      "cis": "Terraform Security - Network exposure"
+    },
+    "TF-SEC-002": {
+      "nist_csf": [
+        "PR.AA",
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "5.15",
+        "8.3"
+      ],
+      "cis": "Terraform Security - Storage exposure"
+    },
+    "TF-SEC-003": {
+      "nist_csf": [
+        "PR.AA"
+      ],
+      "iso_27001": [
+        "5.15"
+      ],
+      "cis": "Terraform Security - Least privilege"
+    },
+    "TF-SEC-004": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.24"
+      ],
+      "cis": "Terraform Security - Encryption"
+    },
+    "NET-TLS-001": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.24"
+      ],
+      "cis": "Network Security - Transport encryption"
+    },
+    "NET-TLS-002": {
+      "nist_csf": [
+        "PR.DS"
+      ],
+      "iso_27001": [
+        "8.24"
+      ],
+      "cis": "Network Security - Certificate management"
+    },
+    "NET-PORT-001": {
+      "nist_csf": [
+        "PR.IR"
+      ],
+      "iso_27001": [
+        "8.20"
+      ],
+      "cis": "Network Security - Exposure management"
+    },
     "FBSD-FW-001": {
       "nist_csf": [
         "PR.IR"
