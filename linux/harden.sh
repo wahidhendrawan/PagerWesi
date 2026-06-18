@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 MODE="audit"
-BACKUP_ROOT="/var/backups/automation-hardening"
+BACKUP_ROOT="/var/backups/pagerwesi"
 ALLOW_SSH="${ALLOW_SSH:-OpenSSH}"
 
 usage() {

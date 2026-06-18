@@ -46,7 +46,7 @@ def _gen_index(findings: list[dict]) -> str:
     errors = sum(1 for f in findings if normalized_status(f) == "error")
     passes = sum(1 for f in findings if normalized_status(f) == "pass")
     body = (
-        f"<h1>Automation Hardening Dashboard</h1>"
+        f"<h1>PagerWesi Dashboard</h1>"
         f"<div class='card'><h2>Summary</h2>"
         f"<p>Total: {total} | "
         f"<span class='badge badge-pass'>PASS: {passes}</span> | "

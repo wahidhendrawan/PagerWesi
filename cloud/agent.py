@@ -10,7 +10,7 @@ from types import SimpleNamespace
 from cloud.core import Finding, Severity, Status
 from cloud.finding_utils import normalized_status
 
-STATE_FILE = Path(".automation-hardening-state.json")
+STATE_FILE = Path(".pagerwesi-state.json")
 _shutdown = False
 
 
