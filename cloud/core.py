@@ -9,6 +9,7 @@ from enum import Enum
 from typing import TextIO
 
 from cloud.control_registry import CONTROL_METADATA
+from cloud.version import __version__
 
 
 class Status(str, Enum):
@@ -186,7 +187,7 @@ def render_sarif(findings: list[Finding], stream: TextIO) -> None:
                 "tool": {
                     "driver": {
                         "name": "Automation-Hardening",
-                        "version": "0.7.0",
+                        "version": __version__,
                         "informationUri": "https://github.com/wahidhendrawan/Automation-Hardening",
                         "rules": list(rules.values()),
                     }

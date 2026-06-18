@@ -1,8 +1,9 @@
 # Automation Hardening
 
-Security baseline auditing and controlled remediation for Linux, Windows, macOS, AWS, Azure,
-and GCP. Every entry point defaults to **audit-only** behavior. Review findings and test changes
-in a disposable environment before using apply mode.
+Security baseline auditing and controlled remediation for operating systems, cloud providers,
+Kubernetes, Docker, Terraform plans, source trees, and network/TLS endpoints. Every entry point
+defaults to **audit-only** behavior. Review findings and test changes in a disposable environment
+before using apply mode.
 
 Promotional website and documentation are published at
 **<https://wahidhendrawan.github.io/Automation-Hardening/>** via the included GitHub Pages workflow.

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.0 - 2026-06-18
+
+- Added a reusable JSON Schema for machine-readable findings (`docs/finding.schema.json`).
+- Added regression coverage to validate rendered JSON findings against the schema.
+- Added `--watch-providers` for agent mode and preserved agent exit codes in the CLI.
+- Changed agent provider failures to emit `AGENT-PROVIDER-001` error findings instead of being
+  silently ignored.
+- Fixed webhook, dashboard, and compliance exports to handle both `Finding` objects and serialized
+  finding dictionaries consistently.
+- Completed control metadata coverage for Docker, secrets, Terraform plan, and network/TLS
+  scanners.
+- Clarified that `automation-hardening all` runs the core cloud provider set only: AWS, Azure, GCP,
+  and Kubernetes.
+- Pinned the LocalStack integration image to avoid upstream `latest` license-token drift.
+- Added community health files and updated project licensing metadata to GPL-3.0-or-later.
+- Updated README, Quickstart, and GitHub Pages documentation for local scanners, finding schema,
+  compliance evidence, dashboard generation, and agent mode.
+
 ## 0.7.0 - 2026-06-17
 
 - Added webhook alerts for Slack, Microsoft Teams, and PagerDuty (`--notify`).
