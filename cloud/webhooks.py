@@ -53,7 +53,7 @@ def send_pagerduty(key: str, findings: list[Any]) -> None:
         "payload": {
             "summary": s["message"],
             "severity": "critical",
-            "source": "automation-hardening",
+            "source": "pagerwesi",
         },
     }
     _post_json("https://events.pagerduty.com/v2/enqueue", payload)

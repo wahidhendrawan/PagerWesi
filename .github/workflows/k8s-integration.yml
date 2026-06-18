@@ -27,7 +27,7 @@ jobs:
       - run: python -m pip install -e '.[k8s,dev]'
       - name: Run K8s audit against kind cluster
         run: |
-          automation-hardening k8s --format json --output reports/k8s.json
+          pagerwesi k8s --format json --output reports/k8s.json
           cat reports/k8s.json
       - name: Verify findings structure
         run: |

@@ -12,7 +12,7 @@ _TEMPLATE = """\
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Automation Hardening Report</title>
+<title>PagerWesi Report</title>
 <style>
 *{{margin:0;padding:0;box-sizing:border-box}}
 body{{font-family:system-ui,-apple-system,sans-serif;background:#f8f9fa;color:#1a1a2e;padding:2rem}}
@@ -39,7 +39,7 @@ th{{background:#f3f4f6;font-weight:600}}
 </style>
 </head>
 <body>
-<h1>Automation Hardening Report</h1>
+<h1>PagerWesi Report</h1>
 <p class="meta">{meta}</p>
 <div class="stats">
 <div class="stat pass"><strong>{pass_count}</strong><span>Pass</span></div>

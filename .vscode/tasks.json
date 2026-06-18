@@ -4,14 +4,14 @@
     {
       "label": "audit",
       "type": "shell",
-      "command": "automation-hardening all --format json",
+      "command": "pagerwesi all --format json",
       "group": "test",
       "problemMatcher": []
     },
     {
       "label": "plan",
       "type": "shell",
-      "command": "automation-hardening plan",
+      "command": "pagerwesi plan",
       "group": "test",
       "problemMatcher": []
     },

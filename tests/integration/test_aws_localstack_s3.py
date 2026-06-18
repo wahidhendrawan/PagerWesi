@@ -27,7 +27,7 @@ def test_s3_public_access_block_contract_against_localstack():
         region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
     )
     s3 = session.client("s3", endpoint_url=endpoint)
-    bucket = "automation-hardening-contract"
+    bucket = "pagerwesi-contract"
     try:
         s3.create_bucket(Bucket=bucket)
     except Exception:

@@ -15,7 +15,7 @@ class ControlMetadata:
 
     @property
     def help_uri(self) -> str:
-        return f"https://wahidhendrawan.github.io/Automation-Hardening/controls.html#{self.control_id.lower()}"
+        return f"https://wahidhendrawan.github.io/PagerWesi/controls.html#{self.control_id.lower()}"
 
 
 CONTROL_METADATA: dict[str, ControlMetadata] = {

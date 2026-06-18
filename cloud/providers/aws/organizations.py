@@ -16,7 +16,7 @@ def assumed_session(base_session, account_id: str, role_name: str, external_id: 
 
     request = {
         "RoleArn": f"arn:aws:iam::{account_id}:role/{role_name}",
-        "RoleSessionName": "automation-hardening-audit",
+        "RoleSessionName": "pagerwesi-audit",
     }
     if external_id:
         request["ExternalId"] = external_id

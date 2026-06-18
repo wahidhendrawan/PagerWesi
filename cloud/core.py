@@ -147,13 +147,13 @@ def render_sarif(findings: list[Finding], stream: TextIO) -> None:
                 "text": finding.remediation or "Review the finding evidence.",
                 "markdown": (
                     f"**Remediation**: {finding.remediation or 'Review the finding evidence.'}\n\n"
-                    f"See [control catalog]({metadata.help_uri if metadata else 'https://wahidhendrawan.github.io/Automation-Hardening/controls.html'})."
+                    f"See [control catalog]({metadata.help_uri if metadata else 'https://wahidhendrawan.github.io/PagerWesi/controls.html'})."
                 ),
             },
             "helpUri": (
                 metadata.help_uri
                 if metadata
-                else "https://wahidhendrawan.github.io/Automation-Hardening/controls.html"
+                else "https://wahidhendrawan.github.io/PagerWesi/controls.html"
             ),
             "properties": {
                 "target": metadata.target if metadata else finding.resource.split(":", 1)[0],
@@ -186,9 +186,9 @@ def render_sarif(findings: list[Finding], stream: TextIO) -> None:
             {
                 "tool": {
                     "driver": {
-                        "name": "Automation-Hardening",
+                        "name": "PagerWesi",
                         "version": __version__,
-                        "informationUri": "https://github.com/wahidhendrawan/Automation-Hardening",
+                        "informationUri": "https://github.com/wahidhendrawan/PagerWesi",
                         "rules": list(rules.values()),
                     }
                 },
