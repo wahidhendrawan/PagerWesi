@@ -87,14 +87,37 @@ Run local scanners with an explicit scope:
 
 ```bash
 automation-hardening docker --format json --output reports/docker.json
-automation-hardening secrets --path . --format json --output reports/secrets.json
+
+# Prefer a narrow source path in CI to avoid scanning build artifacts.
+automation-hardening secrets --path ./src --format json --output reports/secrets.json
+
+# Generate Terraform plan JSON before scanning.
+terraform plan -out=tfplan
+terraform show -json tfplan > tfplan.json
 automation-hardening terraform --path tfplan.json --format json --output reports/terraform.json
-automation-hardening network --endpoints example.com:443 --format json --output reports/network.json
+automation-hardening network --endpoints example.com:443,api.example.com:443 \
+  --format json --output reports/network.json
 ```
 
 The `all` provider runs the core cloud provider set: AWS, Azure, GCP, and Kubernetes. Docker,
 secrets, Terraform, and network/TLS checks stay explicit because they need a selected local path or
 endpoint list.
+
+## Machine-Readable Findings
+
+Validate downstream ingestion against [finding.schema.json](finding.schema.json). JSON reports use
+lowercase status and severity values and include stable fields for resource, evidence, remediation,
+plan/change flags, and before/after values.
+
+## Agent Mode
+
+```bash
+automation-hardening aws --agent --interval 300 --watch-providers aws,azure,gcp,k8s \
+  --notify notify.yml
+```
+
+Agent mode records provider runtime failures as `AGENT-PROVIDER-001` error findings so alerting and
+state comparison can detect broken credentials, missing dependencies, or provider outages.
 
 ## Permissions
 

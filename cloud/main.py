@@ -102,6 +102,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--interval", type=int, default=300, help="Agent poll interval (seconds)")
     parser.add_argument(
+        "--watch-providers",
+        help="Comma-separated provider list for agent mode; defaults to aws,azure,gcp,k8s",
+    )
+    parser.add_argument(
         "--generate-dashboard", type=Path,
         help="Generate static HTML dashboard site to directory",
     )
@@ -150,8 +154,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     if args.agent:
         from cloud.agent import run_agent
-        run_agent(args)
-        return 0
+        return run_agent(args)
     if args.generate_playbook:
         from cloud.remediation import generate_playbook
         output = generate_playbook(args.generate_playbook, args.playbook_format)

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wahidhendrawan.github.io/Automation-Hardening/finding.schema.json",
+  "title": "Automation Hardening Finding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "control_id",
+    "title",
+    "status",
+    "severity",
+    "resource",
+    "evidence",
+    "remediation",
+    "benchmark",
+    "changed",
+    "planned",
+    "before",
+    "after"
+  ],
+  "properties": {
+    "control_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]+(?:-[A-Z0-9]+)*-[0-9]{3}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": ["pass", "fail", "error", "skip", "manual"]
+    },
+    "severity": {
+      "enum": ["info", "low", "medium", "high", "critical"]
+    },
+    "resource": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence": {
+      "type": "string"
+    },
+    "remediation": {
+      "type": "string"
+    },
+    "benchmark": {
+      "type": "string",
+      "minLength": 1
+    },
+    "changed": {
+      "type": "boolean"
+    },
+    "planned": {
+      "type": "boolean"
+    },
+    "before": {},
+    "after": {}
+  }
+}
