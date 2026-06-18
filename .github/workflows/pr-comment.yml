@@ -26,7 +26,7 @@ jobs:
         id: audit
         continue-on-error: true
         run: |
-          automation-hardening all --format json --output findings.json || true
+          pagerwesi all --format json --output findings.json || true
           if [ -f findings.json ]; then
             FAIL_COUNT=$(python3 -c "
           import json

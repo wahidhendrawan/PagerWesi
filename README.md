@@ -1,4 +1,4 @@
-# Automation Hardening
+# PagerWesi
 
 Security baseline auditing and controlled remediation for operating systems, cloud providers,
 Kubernetes, Docker, Terraform plans, source trees, and network/TLS endpoints. Every entry point
@@ -6,7 +6,7 @@ defaults to **audit-only** behavior. Review findings and test changes in a dispo
 before using apply mode.
 
 Promotional website and documentation are published at
-**<https://wahidhendrawan.github.io/Automation-Hardening/>** via the included GitHub Pages workflow.
+**<https://wahidhendrawan.github.io/PagerWesi/>** via the included GitHub Pages workflow.
 Source assets are in [docs/index.html](docs/index.html).
 
 For a short setup path, start with [docs/quickstart.md](docs/quickstart.md). Provider permission
@@ -42,52 +42,52 @@ Python 3.10 or newer is required. Install only the providers you use:
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -e '.[aws]'
-automation-hardening aws --format text
+pagerwesi aws --format text
 ```
 
 Useful examples:
 
 ```bash
 # Machine-readable report
-automation-hardening aws --format json --output reports/aws.json
+pagerwesi aws --format json --output reports/aws.json
 
 # One control and a named AWS profile
-automation-hardening aws --control AWS-S3-004 --profile production
+pagerwesi aws --control AWS-S3-004 --profile production
 
 # Run regional controls across multiple AWS regions
-automation-hardening aws --regions us-east-1,ap-southeast-1,eu-west-1
+pagerwesi aws --regions us-east-1,ap-southeast-1,eu-west-1
 
 # Audit multiple AWS accounts represented by named profiles
-automation-hardening aws --profiles production,security-audit --regions us-east-1,ap-southeast-1
+pagerwesi aws --profiles production,security-audit --regions us-east-1,ap-southeast-1
 
 # Discover active AWS Organization accounts and assume a standard audit role
-automation-hardening aws --organization-role AutomationHardeningAudit \
+pagerwesi aws --organization-role AutomationHardeningAudit \
   --external-id approved-external-id --regions us-east-1,ap-southeast-1
 
 # Preview/apply deterministic AWS remediations
-automation-hardening aws --mode plan \
+pagerwesi aws --mode plan \
   --plan-manifest reports/aws-plan.json
-automation-hardening aws --mode apply --yes \
+pagerwesi aws --mode apply --yes \
   --change-manifest reports/aws-changes.json
 
 # Restore reversible settings from an apply change manifest
-automation-hardening aws --mode rollback --yes \
+pagerwesi aws --mode rollback --yes \
   --rollback-manifest reports/aws-changes.json
 
 # Azure/GCP plan mode (non-mutating)
-automation-hardening azure --mode plan --plan-manifest reports/azure-plan.json
-automation-hardening gcp --mode plan --plan-manifest reports/gcp-plan.json
+pagerwesi azure --mode plan --plan-manifest reports/azure-plan.json
+pagerwesi gcp --mode plan --plan-manifest reports/gcp-plan.json
 
 # Apply validated policy overrides and documented resource exclusions
-automation-hardening policy validate --policy policy.example.yml
-automation-hardening aws --policy policy.example.yml
+pagerwesi policy validate --policy policy.example.yml
+pagerwesi aws --policy policy.example.yml
 
 # SARIF for GitHub code scanning ingestion
-automation-hardening aws --format sarif --output reports/aws.sarif
+pagerwesi aws --format sarif --output reports/aws.sarif
 
 # Static dashboard and compliance evidence
-automation-hardening aws --generate-dashboard reports/site
-automation-hardening aws --export-compliance soc2 --output reports/aws.json
+pagerwesi aws --generate-dashboard reports/site
+pagerwesi aws --export-compliance soc2 --output reports/aws.json
 ```
 
 Exit codes are `0` for no failed/error findings, `1` for failed controls, and `2` for execution or
@@ -130,11 +130,11 @@ custom webhook processors.
 A pre-built container image is published to GHCR on every version tag:
 
 ```bash
-docker pull ghcr.io/wahidhendrawan/automation-hardening:latest
+docker pull ghcr.io/wahidhendrawan/pagerwesi:latest
 
 docker run --rm \
   -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION \
-  ghcr.io/wahidhendrawan/automation-hardening:latest \
+  ghcr.io/wahidhendrawan/pagerwesi:latest \
   aws --format sarif --output /dev/stdout
 ```
 
@@ -142,8 +142,8 @@ docker run --rm \
 
 ```bash
 pip install -e '.[k8s]'
-automation-hardening k8s --format text
-automation-hardening k8s --mode plan --plan-manifest reports/k8s-plan.json
+pagerwesi k8s --format text
+pagerwesi k8s --mode plan --plan-manifest reports/k8s-plan.json
 ```
 
 Checks NetworkPolicy coverage, cluster-admin RBAC bindings, privileged pods, and Pod Security
@@ -155,18 +155,18 @@ Local scanners require explicit operator scope:
 
 ```bash
 # Docker daemon/container posture
-automation-hardening docker --format json --output reports/docker.json
+pagerwesi docker --format json --output reports/docker.json
 
 # Source-tree secret detection; prefer a narrow path in CI
-automation-hardening secrets --path ./src --format json --output reports/secrets.json
+pagerwesi secrets --path ./src --format json --output reports/secrets.json
 
 # Terraform plan review; generate JSON first
 terraform plan -out=tfplan
 terraform show -json tfplan > tfplan.json
-automation-hardening terraform --path tfplan.json --format json --output reports/terraform.json
+pagerwesi terraform --path tfplan.json --format json --output reports/terraform.json
 
 # TLS and endpoint exposure checks
-automation-hardening network --endpoints example.com:443,api.example.com:443 \
+pagerwesi network --endpoints example.com:443,api.example.com:443 \
   --format json --output reports/network.json
 ```
 
@@ -174,8 +174,8 @@ automation-hardening network --endpoints example.com:443,api.example.com:443 \
 
 ```bash
 pip install -e '.[aws,azure,gcp,k8s]'
-automation-hardening all --format json --output reports/unified.json
-automation-hardening all --format sarif --output reports/unified.sarif
+pagerwesi all --format json --output reports/unified.json
+pagerwesi all --format sarif --output reports/unified.sarif
 ```
 
 Runs the core cloud providers (`aws`, `azure`, `gcp`, and `k8s`) sequentially and combines findings
@@ -183,10 +183,10 @@ into a single report. Unavailable providers are skipped gracefully. Local scanne
 commands because they require an operator-selected path or endpoint scope:
 
 ```bash
-automation-hardening docker --format json --output reports/docker.json
-automation-hardening secrets --path . --format json --output reports/secrets.json
-automation-hardening terraform --path tfplan.json --format json --output reports/terraform.json
-automation-hardening network --endpoints example.com:443 --format json --output reports/network.json
+pagerwesi docker --format json --output reports/docker.json
+pagerwesi secrets --path . --format json --output reports/secrets.json
+pagerwesi terraform --path tfplan.json --format json --output reports/terraform.json
+pagerwesi network --endpoints example.com:443 --format json --output reports/network.json
 ```
 
 ## FreeBSD
@@ -228,10 +228,10 @@ powershell -File windows/harden.ps1 -Mode Apply
 ```
 
 Linux apply mode creates a timestamped SSH backup under
-`/var/backups/automation-hardening/`. Restore it with:
+`/var/backups/pagerwesi/`. Restore it with:
 
 ```bash
-sudo bash linux/harden.sh --rollback /var/backups/automation-hardening/TIMESTAMP
+sudo bash linux/harden.sh --rollback /var/backups/pagerwesi/TIMESTAMP
 ```
 
 Linux firewall apply mode permits the service in `ALLOW_SSH` before enabling the firewall. For a
@@ -257,7 +257,7 @@ controls:
 ```
 
 ```bash
-automation-hardening aws --custom-controls my-controls.yml
+pagerwesi aws --custom-controls my-controls.yml
 ```
 
 ## Remediation Playbooks
@@ -265,15 +265,15 @@ automation-hardening aws --custom-controls my-controls.yml
 Generate Terraform or CloudFormation from plan manifests:
 
 ```bash
-automation-hardening aws --generate-playbook reports/plan.json --output remediation.tf
-automation-hardening aws --generate-playbook reports/plan.json \
+pagerwesi aws --generate-playbook reports/plan.json --output remediation.tf
+pagerwesi aws --generate-playbook reports/plan.json \
   --playbook-format cloudformation --output remediation.yml
 ```
 
 ## HTML Dashboard
 
 ```bash
-automation-hardening all --format html --output reports/dashboard.html
+pagerwesi all --format html --output reports/dashboard.html
 ```
 
 Produces a self-contained HTML file with pass/fail/error statistics and a findings table for the
@@ -291,7 +291,7 @@ Agent mode runs periodic audits and can send webhook notifications when new fail
 errors appear:
 
 ```bash
-automation-hardening aws --agent --interval 300 --watch-providers aws,azure,gcp,k8s \
+pagerwesi aws --agent --interval 300 --watch-providers aws,azure,gcp,k8s \
   --notify notify.yml
 ```
 

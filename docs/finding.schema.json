@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://wahidhendrawan.github.io/Automation-Hardening/finding.schema.json",
-  "title": "Automation Hardening Finding",
+  "$id": "https://wahidhendrawan.github.io/PagerWesi/finding.schema.json",
+  "title": "PagerWesi Finding",
   "type": "object",
   "additionalProperties": false,
   "required": [

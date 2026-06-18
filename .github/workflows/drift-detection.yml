@@ -28,7 +28,7 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p reports
-          automation-hardening all --format json --output reports/current.json || true
+          pagerwesi all --format json --output reports/current.json || true
           if [ ! -f reports/current.json ]; then
             echo '{"findings":[],"summary":{}}' > reports/current.json
           fi

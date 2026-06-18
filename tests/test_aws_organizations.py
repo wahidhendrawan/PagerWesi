@@ -41,7 +41,7 @@ def test_assume_role_uses_external_id():
         assumed_session(base, "123", "AuditRole", "external")
     sts.assume_role.assert_called_once_with(
         RoleArn="arn:aws:iam::123:role/AuditRole",
-        RoleSessionName="automation-hardening-audit",
+        RoleSessionName="pagerwesi-audit",
         ExternalId="external",
     )
     session_class.assert_called_once_with(

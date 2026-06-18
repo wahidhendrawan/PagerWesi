@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Automation Hardening helps security teams run audit-first baseline checks, controlled remediation, rollback evidence, and machine-readable reports for OS, cloud, containers, code, Terraform, and network endpoints."
+      content="PagerWesi helps security teams run audit-first baseline checks, controlled remediation, rollback evidence, and machine-readable reports for OS, cloud, containers, code, Terraform, and network endpoints."
     />
-    <title>Automation Hardening | Security Baseline Automation</title>
+    <title>PagerWesi | Security Baseline Automation</title>
     <link rel="stylesheet" href="assets/styles.css" />
   </head>
   <body>
     <header class="site-header">
       <nav class="nav" aria-label="Main navigation">
-        <a class="brand" href="#top" aria-label="Automation Hardening home">
+        <a class="brand" href="#top" aria-label="PagerWesi home">
           <span class="brand-mark">AH</span>
-          <span>Automation Hardening</span>
+          <span>PagerWesi</span>
         </a>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">
           Menu
@@ -36,14 +36,14 @@
           <p class="eyebrow">Audit-first security automation</p>
           <h1>Cross-platform hardening baselines without surprise production changes.</h1>
           <p class="hero-lead">
-            Automation Hardening helps security, platform, and compliance teams run audits, review
+            PagerWesi helps security, platform, and compliance teams run audits, review
             plan manifests, apply limited remediations, collect rollback evidence, and export
             machine-readable reports across Linux, Windows, macOS, FreeBSD, Alpine, AWS, Azure,
             GCP, Kubernetes, Docker, Terraform plans, source trees, and network endpoints.
           </p>
           <div class="hero-actions">
             <a class="button primary" href="#start">Get started</a>
-            <a class="button secondary" href="https://github.com/wahidhendrawan/Automation-Hardening">
+            <a class="button secondary" href="https://github.com/wahidhendrawan/PagerWesi">
               View on GitHub
             </a>
           </div>
@@ -59,7 +59,7 @@
           <div class="terminal-bar">
             <span></span><span></span><span></span>
           </div>
-          <pre><code>$ automation-hardening aws --mode plan \
+          <pre><code>$ pagerwesi aws --mode plan \
   --plan-manifest reports/aws-plan.json
 
 [!] AWS-S3-004 FAIL arn:aws:s3:::example
@@ -243,11 +243,11 @@ Summary: pass=18, fail=2, error=0, skip=0, manual=0</code></pre>
           <div class="terminal-bar">
             <span></span><span></span><span></span>
           </div>
-          <pre><code>$ docker pull ghcr.io/wahidhendrawan/automation-hardening:latest
+          <pre><code>$ docker pull ghcr.io/wahidhendrawan/pagerwesi:latest
 
 $ docker run --rm \
   -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY \
-  ghcr.io/wahidhendrawan/automation-hardening:latest \
+  ghcr.io/wahidhendrawan/pagerwesi:latest \
   aws --format sarif --output /dev/stdout</code></pre>
         </div>
       </section>
@@ -259,8 +259,8 @@ $ docker run --rm \
           <pre><code>python3 -m venv .venv
 . .venv/bin/activate
 pip install -e '.[aws]'
-automation-hardening policy validate --policy policy.example.yml
-automation-hardening aws --format json --output reports/aws.json</code></pre>
+pagerwesi policy validate --policy policy.example.yml
+pagerwesi aws --format json --output reports/aws.json</code></pre>
         </div>
         <div class="cta-panel">
           <h3>Use it for</h3>
@@ -280,7 +280,7 @@ automation-hardening aws --format json --output reports/aws.json</code></pre>
 
     <footer class="footer">
       <p>
-        Automation Hardening is an internal and open-source baseline project. Compliance mappings
+        PagerWesi is an internal and open-source baseline project. Compliance mappings
         are informative and are not CIS, ISO, or NIST certification.
       </p>
       <div>
@@ -288,7 +288,7 @@ automation-hardening aws --format json --output reports/aws.json</code></pre>
         <a href="quickstart.md">Quickstart</a>
         <a href="versions.md">Versions</a>
         <a href="compliance-mapping.json">Compliance Mapping</a>
-        <a href="https://github.com/wahidhendrawan/Automation-Hardening">GitHub</a>
+        <a href="https://github.com/wahidhendrawan/PagerWesi">GitHub</a>
       </div>
     </footer>
 

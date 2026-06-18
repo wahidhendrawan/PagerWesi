@@ -140,7 +140,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.provider == "policy":
         if args.policy_action != "validate" or not args.policy:
-            print("[x] usage: automation-hardening policy validate --policy PATH", file=sys.stderr)
+            print("[x] usage: pagerwesi policy validate --policy PATH", file=sys.stderr)
             return 2
         try:
             load_policy(args.policy)

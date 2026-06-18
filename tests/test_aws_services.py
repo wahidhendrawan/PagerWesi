@@ -132,7 +132,7 @@ def test_access_analyzer_apply_creates_account_analyzer():
     findings = _check_aws_services(session_with(client), "123", options("AWS-IAM-002", "apply"))
     assert findings[0].changed is True
     client.create_analyzer.assert_called_once_with(
-        analyzerName="automation-hardening-account", type="ACCOUNT"
+        analyzerName="pagerwesi-account", type="ACCOUNT"
     )
 
 
