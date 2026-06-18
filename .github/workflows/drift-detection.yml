@@ -28,31 +28,40 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p reports
-          automation-hardening all --format json --output reports/current.json 2>&1 || true
+          automation-hardening all --format json --output reports/current.json || true
+          if [ ! -f reports/current.json ]; then
+            echo '{"findings":[],"summary":{}}' > reports/current.json
+          fi
       - name: Compare with previous baseline
         id: drift
         run: |
-          python -c "
-          import json, sys, os
-          current = json.load(open('reports/current.json'))
-          fails = [f for f in current.get('findings', []) if f['status'] == 'fail']
+          python3 << 'PYEOF'
+          import json, os, pathlib
+          path = pathlib.Path("reports/current.json")
+          if not path.exists():
+              data = {"findings": []}
+          else:
+              data = json.loads(path.read_text())
+          findings = data.get("findings", [])
+          fails = [f for f in findings if f.get("status") == "fail"]
           count = len(fails)
-          print(f'Failed controls: {count}')
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f'fail_count={count}\n')
-              f.write(f'has_drift={'true' if count > 0 else 'false'}\n')
-          "
+          print(f"Failed controls: {count}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"fail_count={count}\n")
+              f.write(f"has_drift={'true' if count > 0 else 'false'}\n")
+          PYEOF
       - name: Create issue on drift
         if: steps.drift.outputs.has_drift == 'true'
         run: |
           gh issue create \
             --title "Drift detected: ${{ steps.drift.outputs.fail_count }} controls failing" \
-            --body "Scheduled drift detection found ${{ steps.drift.outputs.fail_count }} failing controls. Review reports/current.json for details." \
+            --body "Scheduled drift detection found ${{ steps.drift.outputs.fail_count }} failing controls." \
             --label "security,drift" \
-            || echo "Issue creation skipped (labels may not exist)"
+            || echo "Issue creation skipped"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: drift-report
           path: reports/current.json
