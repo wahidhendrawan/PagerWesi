@@ -5,16 +5,18 @@ import json
 import urllib.request
 from typing import Any
 
+from cloud.finding_utils import actionable_findings, finding_control_id
+
 
 def _filter_actionable(findings: list[Any]) -> list[Any]:
     """Keep only FAIL/ERROR findings."""
-    return [f for f in findings if getattr(f, "status", None) in ("FAIL", "ERROR")]
+    return actionable_findings(findings)
 
 
 def _summary(findings: list[Any]) -> dict[str, Any]:
     """Build concise summary: count + top 5 control IDs."""
     filtered = _filter_actionable(findings)
-    ids = [getattr(f, "control_id", "unknown") for f in filtered]
+    ids = [finding_control_id(f) for f in filtered]
     return {
         "total_failures": len(filtered),
         "top_controls": ids[:5],
@@ -27,7 +29,7 @@ def _post_json(url: str, payload: dict) -> None:
     req = urllib.request.Request(
         url, data=data, headers={"Content-Type": "application/json"}
     )
-    urllib.request.urlopen(req)
+    urllib.request.urlopen(req, timeout=10)
 
 
 def send_slack(url: str, findings: list[Any]) -> None:

@@ -28,7 +28,7 @@ examples are in [docs/provider-permissions.md](docs/provider-permissions.md).
 | Secrets | Yes | — | — | Text, JSON, SARIF, HTML |
 | Terraform | Yes | — | — | Text, JSON, SARIF, HTML |
 | Network/TLS | Yes | — | — | Text, JSON, SARIF, HTML |
-| **All (unified)** | Yes | Yes | — | Text, JSON, SARIF, HTML |
+| **All core cloud** | Yes | Yes | — | Text, JSON, SARIF, HTML |
 
 Controls are project baselines inspired by common CIS recommendations. They are **not a claim of
 CIS certification**. See [docs/controls.md](docs/controls.md) for scope and limitations.
@@ -140,7 +140,7 @@ automation-hardening k8s --mode plan --plan-manifest reports/k8s-plan.json
 Checks NetworkPolicy coverage, cluster-admin RBAC bindings, privileged pods, and Pod Security
 Standards enforcement. Connects via in-cluster config or `~/.kube/config`.
 
-## Multi-Cloud Unified Report
+## Core Cloud Unified Report
 
 ```bash
 pip install -e '.[aws,azure,gcp,k8s]'
@@ -148,8 +148,16 @@ automation-hardening all --format json --output reports/unified.json
 automation-hardening all --format sarif --output reports/unified.sarif
 ```
 
-Runs all available providers sequentially and combines findings into a single report. Unavailable
-providers are skipped gracefully.
+Runs the core cloud providers (`aws`, `azure`, `gcp`, and `k8s`) sequentially and combines findings
+into a single report. Unavailable providers are skipped gracefully. Local scanners are explicit
+commands because they require an operator-selected path or endpoint scope:
+
+```bash
+automation-hardening docker --format json --output reports/docker.json
+automation-hardening secrets --path . --format json --output reports/secrets.json
+automation-hardening terraform --path tfplan.json --format json --output reports/terraform.json
+automation-hardening network --endpoints example.com:443 --format json --output reports/network.json
+```
 
 ## FreeBSD
 
@@ -238,12 +246,14 @@ automation-hardening aws --generate-playbook reports/plan.json \
 automation-hardening all --format html --output reports/dashboard.html
 ```
 
-Produces a self-contained HTML file with pass/fail/error statistics and a findings table.
+Produces a self-contained HTML file with pass/fail/error statistics and a findings table for the
+core cloud provider set. Run explicit local scanners separately when you need Docker, secrets,
+Terraform plan, or network/TLS evidence.
 
 ## Drift Detection
 
-A scheduled workflow runs daily, audits all providers, and creates a GitHub Issue if controls
-are failing. See `.github/workflows/drift-detection.yml`.
+A scheduled workflow runs daily, audits the core cloud provider set, and creates a GitHub Issue if
+controls are failing. See `.github/workflows/drift-detection.yml`.
 
 ## Development
 
