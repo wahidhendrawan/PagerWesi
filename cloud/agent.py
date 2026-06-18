@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import json
 import signal
+import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace
+
+from cloud.core import Finding, Severity, Status
+from cloud.finding_utils import normalized_status
 
 STATE_FILE = Path(".automation-hardening-state.json")
 _shutdown = False
@@ -34,8 +38,22 @@ def _run_providers(providers: list[str], args) -> list[dict]:
             module = load_provider(prov)
             findings = module.run_audit(args)
             all_findings.extend(f.to_dict() for f in findings)
-        except Exception:
-            pass
+        except Exception as exc:
+            print(
+                f"[agent] provider {prov} failed: {type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
+            all_findings.append(
+                Finding(
+                    "AGENT-PROVIDER-001",
+                    "Agent provider audit failed",
+                    Status.ERROR,
+                    Severity.HIGH,
+                    f"agent:{prov}",
+                    f"{type(exc).__name__}: {exc}",
+                    "Check provider credentials, dependencies, and runtime configuration.",
+                ).to_dict()
+            )
     return all_findings
 
 
@@ -43,11 +61,11 @@ def _new_fails(current: list[dict], previous: list[dict]) -> list[dict]:
     prev_keys = {
         (f.get("control_id"), f.get("resource"))
         for f in previous
-        if f.get("status") == "fail"
+        if normalized_status(f) in {"fail", "error"}
     }
     return [
         f for f in current
-        if f.get("status") == "fail"
+        if normalized_status(f) in {"fail", "error"}
         and (f.get("control_id"), f.get("resource")) not in prev_keys
     ]
 
