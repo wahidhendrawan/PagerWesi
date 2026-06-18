@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Automation Hardening helps security teams run audit-first baseline checks, controlled remediation, rollback evidence, and machine-readable reports for Linux, Windows, macOS, AWS, Azure, and GCP."
+      content="Automation Hardening helps security teams run audit-first baseline checks, controlled remediation, rollback evidence, and machine-readable reports for OS, cloud, containers, code, Terraform, and network endpoints."
     />
     <title>Automation Hardening | Security Baseline Automation</title>
     <link rel="stylesheet" href="assets/styles.css" />
@@ -38,7 +38,8 @@
           <p class="hero-lead">
             Automation Hardening helps security, platform, and compliance teams run audits, review
             plan manifests, apply limited remediations, collect rollback evidence, and export
-            machine-readable reports across Linux, Windows, macOS, AWS, Azure, and GCP.
+            machine-readable reports across Linux, Windows, macOS, FreeBSD, Alpine, AWS, Azure,
+            GCP, Kubernetes, Docker, Terraform plans, source trees, and network endpoints.
           </p>
           <div class="hero-actions">
             <a class="button primary" href="#start">Get started</a>
@@ -71,8 +72,8 @@ Summary: pass=18, fail=2, error=0, skip=0, manual=0</code></pre>
 
       <section class="stats" aria-label="Coverage summary">
         <div>
-          <strong>6</strong>
-          <span>Targets: OS and cloud</span>
+          <strong>13</strong>
+          <span>Targets: OS, cloud, container, code, and network</span>
         </div>
         <div>
           <strong>4</strong>
@@ -97,9 +98,9 @@ Summary: pass=18, fail=2, error=0, skip=0, manual=0</code></pre>
           <article class="card">
             <h3>Cloud posture baseline</h3>
             <p>
-              AWS, Azure, and GCP checks cover high-value storage exposure, logging, monitoring,
-              network exposure, identity, key management, and prioritized security services.
-              Azure and GCP now support plan mode for non-mutating change preview.
+              AWS, Azure, GCP, and Kubernetes checks cover high-value storage exposure, logging,
+              monitoring, network exposure, identity, key management, RBAC, and pod security.
+              Azure, GCP, and Kubernetes support plan mode for non-mutating change preview.
             </p>
           </article>
           <article class="card">
@@ -119,10 +120,11 @@ Summary: pass=18, fail=2, error=0, skip=0, manual=0</code></pre>
             </p>
           </article>
           <article class="card">
-            <h3>OS hardening scripts</h3>
+            <h3>OS and local scanners</h3>
             <p>
-              Linux, macOS, and Windows scripts provide audit, plan, and apply workflows for
-              baseline firewall, SSH, patching, audit policy, and access controls.
+              Linux, macOS, Windows, FreeBSD, and Alpine scripts cover host baselines. Docker,
+              secrets, Terraform plan, and network/TLS scanners add explicit scoped evidence for
+              local and CI/CD workflows.
             </p>
           </article>
           <article class="card">
@@ -209,10 +211,24 @@ Summary: pass=18, fail=2, error=0, skip=0, manual=0</code></pre>
             </p>
           </div>
           <div>
+            <h3>Kubernetes</h3>
+            <p>
+              NetworkPolicy coverage, cluster-admin RBAC bindings, privileged pod detection, and
+              Pod Security Standards enforcement. Plan mode available.
+            </p>
+          </div>
+          <div>
+            <h3>Local Scanners</h3>
+            <p>
+              Docker daemon and container checks, source-tree secret detection, Terraform plan
+              review, and network/TLS endpoint validation with explicit path or endpoint scope.
+            </p>
+          </div>
+          <div>
             <h3>OS</h3>
             <p>
-              Linux firewall/SSH/patching, macOS firewall/Gatekeeper/FileVault guidance, and
-              Windows firewall/SMB/auditing.
+              Linux firewall/SSH/patching, macOS firewall/Gatekeeper/FileVault guidance, Windows
+              firewall/SMB/auditing, plus FreeBSD and Alpine/container host baselines.
             </p>
           </div>
         </div>

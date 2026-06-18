@@ -5,6 +5,9 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
+from cloud.control_registry import CONTROL_METADATA
+from cloud.finding_utils import finding_control_id, finding_value, normalized_status
+
 SOC2_MAPPING: dict[str, str] = {
     "iam-mfa": "CC6.1",
     "iam-password-policy": "CC6.1",
@@ -32,6 +35,41 @@ PCI_MAPPING: dict[str, str] = {
 }
 
 
+_SOC2_BY_NIST = {
+    "PR.AA": "CC6.1",
+    "PR.DS": "CC6.1",
+    "PR.IR": "CC6.6",
+    "PR.PS": "CC7.1",
+    "DE.CM": "CC7.2",
+    "ID.AM": "CC3.2",
+}
+
+_PCI_BY_NIST = {
+    "PR.AA": "7.1",
+    "PR.DS": "3.4",
+    "PR.IR": "1.2",
+    "PR.PS": "6.3",
+    "DE.CM": "10.2",
+    "ID.AM": "12.5",
+}
+
+
+def _framework_mapping(control_id: str, framework: str) -> str:
+    explicit = SOC2_MAPPING if framework == "soc2" else PCI_MAPPING
+    if control_id in explicit:
+        return explicit[control_id]
+
+    metadata = CONTROL_METADATA.get(control_id)
+    if not metadata:
+        return "unmapped"
+
+    inferred = _SOC2_BY_NIST if framework == "soc2" else _PCI_BY_NIST
+    for ref in metadata.nist_csf:
+        if ref in inferred:
+            return inferred[ref]
+    return "unmapped"
+
+
 def export_evidence(
     findings: list[Any],
     framework: str = "soc2",
@@ -41,11 +79,14 @@ def export_evidence(
     mapping = SOC2_MAPPING if framework == "soc2" else PCI_MAPPING
     evidence_items = []
     for f in findings:
-        cid = getattr(f, "control_id", "unknown")
+        cid = finding_control_id(f)
+        metadata = CONTROL_METADATA.get(cid)
         evidence_items.append({
             "control_id": cid,
-            "status": getattr(f, "status", "UNKNOWN"),
-            "mapping": mapping.get(cid, "unmapped"),
+            "status": normalized_status(f) or "unknown",
+            "mapping": mapping.get(cid, _framework_mapping(cid, framework)),
+            "target": metadata.target if metadata else finding_value(f, "resource", "unknown"),
+            "evidence": finding_value(f, "evidence", ""),
         })
     result = json.dumps({
         "framework": framework,
