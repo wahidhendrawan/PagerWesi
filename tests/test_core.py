@@ -1,4 +1,5 @@
 import json
+import re
 from io import StringIO
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from cloud.core import (
     render_sarif,
     summarize,
 )
+from cloud.version import __version__
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -34,6 +36,13 @@ def test_json_is_machine_readable():
     stream = StringIO()
     render_json([Finding("A", "title", Status.PASS, Severity.INFO, "r", "e")], stream)
     assert json.loads(stream.getvalue())["summary"]["pass"] == 1
+
+
+def test_package_version_matches_project_metadata():
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    match = re.search(r'^version = "([^"]+)"$', pyproject, re.MULTILINE)
+    assert match
+    assert __version__ == match.group(1)
 
 
 def test_finding_json_schema_matches_rendered_findings():
@@ -105,7 +114,7 @@ def test_sarif_enriched_with_control_metadata():
     render_sarif([finding], stream)
     sarif = json.loads(stream.getvalue())
     driver = sarif["runs"][0]["tool"]["driver"]
-    assert driver["version"] == "0.7.0"
+    assert driver["version"] == "0.8.0"
     rule = driver["rules"][0]
     assert rule["helpUri"].startswith("https://")
     assert "tags" in rule["properties"]
