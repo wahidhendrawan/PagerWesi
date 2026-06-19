@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0 - 2026-06-19
+
+- Completed the project rebrand to PagerWesi across the
+  repository, CLI package metadata, documentation, GitHub Pages links, and container image names.
+- Updated examples to use the `pagerwesi` CLI and PagerWesi-specific role/session naming.
+- Added release notes for the rebrand release so downstream users have a clear migration target.
+
 ## 0.8.0 - 2026-06-18
 
 - Added a reusable JSON Schema for machine-readable findings (`docs/finding.schema.json`).
