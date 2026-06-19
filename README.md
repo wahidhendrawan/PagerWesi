@@ -61,7 +61,7 @@ pagerwesi aws --regions us-east-1,ap-southeast-1,eu-west-1
 pagerwesi aws --profiles production,security-audit --regions us-east-1,ap-southeast-1
 
 # Discover active AWS Organization accounts and assume a standard audit role
-pagerwesi aws --organization-role AutomationHardeningAudit \
+pagerwesi aws --organization-role PagerWesiAudit \
   --external-id approved-external-id --regions us-east-1,ap-southeast-1
 
 # Preview/apply deterministic AWS remediations
