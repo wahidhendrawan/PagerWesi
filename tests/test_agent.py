@@ -5,7 +5,7 @@ from cloud.agent import _new_fails, _run_providers
 from cloud.core import Finding, Severity, Status
 
 
-def test_agent_records_provider_errors(capsys):
+def test_agent_records_provider_errors(caplog):
     working = MagicMock()
     working.run_audit.return_value = [
         Finding("AWS-S3-001", "ok", Status.PASS, Severity.INFO, "aws:account:1", "ok")
@@ -23,7 +23,7 @@ def test_agent_records_provider_errors(capsys):
     assert findings[1]["control_id"] == "AGENT-PROVIDER-001"
     assert findings[1]["status"] == "error"
     assert findings[1]["resource"] == "agent:broken"
-    assert "provider broken failed" in capsys.readouterr().err
+    assert "Provider broken failed" in caplog.text
 
 
 def test_agent_new_fails_includes_errors():
