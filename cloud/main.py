@@ -21,8 +21,11 @@ from cloud.core import (
     render_text,
 )
 from cloud.html_report import render_html
+from cloud.logging_config import get_logger
 from cloud.policy import load_policy
 from cloud.providers import PROVIDERS
+
+logger = get_logger("main")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -113,6 +116,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--endpoints", help="Comma-separated host:port for network scanner"
     )
     parser.add_argument("--path", type=Path, help="Path to scan (secrets/terraform)")
+    parser.add_argument(
+        "--log-level",
+        choices=["debug", "info", "warning", "error"],
+        default="info",
+        help="Logging verbosity level",
+    )
+    parser.add_argument(
+        "--log-json",
+        action="store_true",
+        help="Use JSON structured log output",
+    )
+    parser.add_argument(
+        "--log-file",
+        type=Path,
+        help="Write logs to file with rotation",
+    )
     return parser
 
 
@@ -138,6 +157,15 @@ def write_report(findings: list[Finding], report_format: str, stream: TextIO) ->
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+
+    # Configure logging based on CLI args
+    from cloud.logging_config import configure_logging
+    configure_logging(
+        level=getattr(args, "log_level", "info").upper(),
+        json_output=getattr(args, "log_json", False),
+        log_file=str(args.log_file) if getattr(args, "log_file", None) else None,
+    )
+
     if args.provider == "policy":
         if args.policy_action != "validate" or not args.policy:
             print("[x] usage: pagerwesi policy validate --policy PATH", file=sys.stderr)
@@ -196,17 +224,30 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 2
         args.policy = load_policy(args.policy)
         findings: list[Finding] = []
+
+        # Use concurrent runner for parallel provider execution
+        from cloud.concurrent_runner import ConcurrentRunner, ProviderTask
+
+        runner = ConcurrentRunner(max_workers=min(args.workers, 4))
+        tasks: list[ProviderTask] = []
         for prov in ("aws", "azure", "gcp", "k8s"):
             try:
                 module = load_provider(prov)
-                result = module.run_audit(args)
-                if isinstance(result, list):
-                    findings.extend(result)
+                tasks.append(ProviderTask(
+                    name=prov,
+                    audit_fn=module.run_audit,
+                    args=args,
+                ))
             except RuntimeError as exc:
-                print(
-                    f"[!] skipping {prov}: {exc}",
-                    file=sys.stderr,
-                )
+                logger.warning("Skipping %s: %s", prov, exc)
+
+        if tasks:
+            results = runner.run_providers(tasks)
+            for result in results:
+                findings.extend(result.findings)
+        else:
+            logger.warning("No providers available for 'all' audit")
+
         if args.output:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             with args.output.open("w", encoding="utf-8") as stream:

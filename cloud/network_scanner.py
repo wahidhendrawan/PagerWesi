@@ -1,14 +1,34 @@
+"""Network and TLS endpoint scanner with input validation and rate limiting.
+
+Scans endpoints for TLS version compliance, certificate validity,
+and unexpected open ports.
+"""
 from __future__ import annotations
 
 import socket
 import ssl
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 from cloud.core import Finding, Severity, Status
+from cloud.input_validator import ValidationError, validate_endpoints
+from cloud.logging_config import get_logger
+from cloud.rate_limiter import RateLimiter
+
+logger = get_logger("network_scanner")
 
 CONTROL_IDS = {"NET-TLS-001", "NET-TLS-002", "NET-PORT-001"}
 
+# Rate limit network scans to prevent abuse
+_SCAN_RATE_LIMITER = RateLimiter(calls_per_second=5.0, burst=10)
 
-def _finding(control_id, title, status, severity, resource, evidence, remediation=""):
+# Connection timeouts
+_CONNECT_TIMEOUT = 10
+_PORT_SCAN_TIMEOUT = 5
+
+
+def _finding(control_id: str, title: str, status: Status, severity: Severity,
+             resource: str, evidence: str, remediation: str = "") -> Finding:
     return Finding(
         control_id, title, status, severity, resource, evidence, remediation
     )
@@ -16,14 +36,17 @@ def _finding(control_id, title, status, severity, resource, evidence, remediatio
 
 def _check_tls_version(host: str, port: int) -> Finding:
     """NET-TLS-001: TLS 1.2 or higher."""
+    _SCAN_RATE_LIMITER.acquire(timeout=30)
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
+    # Explicitly disable older TLS versions for test — we only want to see what server offers
     try:
-        with socket.create_connection((host, port), timeout=10) as sock:
+        with socket.create_connection((host, port), timeout=_CONNECT_TIMEOUT) as sock:
             with ctx.wrap_socket(sock, server_hostname=host) as ssock:
                 version = ssock.version()
-                ok = version and "TLSv1.2" <= version  # type: ignore[operator]
+                # TLSv1.2 and TLSv1.3 are acceptable
+                ok = version in ("TLSv1.2", "TLSv1.3")
                 return _finding(
                     "NET-TLS-001", "TLS 1.2 or higher",
                     Status.PASS if ok else Status.FAIL,
@@ -31,6 +54,13 @@ def _check_tls_version(host: str, port: int) -> Finding:
                     f"tls_version={version}",
                     "Upgrade server to TLS 1.2+.",
                 )
+    except TimeoutError:
+        return _finding(
+            "NET-TLS-001", "TLS 1.2 or higher",
+            Status.ERROR, Severity.HIGH, f"{host}:{port}",
+            f"Connection timed out after {_CONNECT_TIMEOUT}s",
+            "Verify the endpoint is accessible and not firewalled.",
+        )
     except Exception as exc:
         return _finding(
             "NET-TLS-001", "TLS 1.2 or higher",
@@ -41,22 +71,31 @@ def _check_tls_version(host: str, port: int) -> Finding:
 
 def _check_cert_validity(host: str, port: int) -> Finding:
     """NET-TLS-002: Valid certificate."""
+    _SCAN_RATE_LIMITER.acquire(timeout=30)
     ctx = ssl.create_default_context()
     try:
-        with socket.create_connection((host, port), timeout=10) as sock:
+        with socket.create_connection((host, port), timeout=_CONNECT_TIMEOUT) as sock:
             with ctx.wrap_socket(sock, server_hostname=host) as ssock:
                 cert = ssock.getpeercert() or {}
+                subject = cert.get("subject", "unknown")
+                not_after = cert.get("notAfter", "unknown")
                 return _finding(
                     "NET-TLS-002", "Valid TLS certificate",
                     Status.PASS, Severity.HIGH, f"{host}:{port}",
-                    f"subject={cert.get('subject', 'unknown')}",
+                    f"subject={subject}, expires={not_after}",
                 )
     except ssl.SSLCertVerificationError as exc:
         return _finding(
             "NET-TLS-002", "Valid TLS certificate",
             Status.FAIL, Severity.HIGH, f"{host}:{port}",
-            f"cert_error={exc}",
+            f"cert_error={exc.verify_message}",
             "Fix or renew the TLS certificate.",
+        )
+    except TimeoutError:
+        return _finding(
+            "NET-TLS-002", "Valid TLS certificate",
+            Status.ERROR, Severity.HIGH, f"{host}:{port}",
+            f"Connection timed out after {_CONNECT_TIMEOUT}s",
         )
     except Exception as exc:
         return _finding(
@@ -74,9 +113,10 @@ def _check_open_ports(
     for port in ports:
         if port in expected:
             continue
+        _SCAN_RATE_LIMITER.acquire(timeout=30)
         try:
             with socket.create_connection(
-                (host, port), timeout=5
+                (host, port), timeout=_PORT_SCAN_TIMEOUT
             ):
                 findings.append(_finding(
                     "NET-PORT-001", "Unexpected open port",
@@ -95,26 +135,72 @@ def _check_open_ports(
     return findings
 
 
-def scan_endpoints(endpoints: list[str], args) -> list[Finding]:
+def scan_endpoints(endpoints: list[tuple[str, int]], args: Any) -> list[Finding]:
+    """Scan validated endpoints for TLS compliance.
+
+    Args:
+        endpoints: List of validated (host, port) tuples.
+        args: CLI arguments namespace.
+
+    Returns:
+        List of findings.
+    """
     findings: list[Finding] = []
-    for endpoint in endpoints:
-        parts = endpoint.rsplit(":", 1)
-        host = parts[0]
-        port = int(parts[1]) if len(parts) > 1 else 443
-        findings.append(_check_tls_version(host, port))
-        findings.append(_check_cert_validity(host, port))
+    max_workers = min(getattr(args, "workers", 8), len(endpoints), 16)
+
+    logger.info("Scanning %d endpoints with %d workers", len(endpoints), max_workers)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        for host, port in endpoints:
+            futures.append(executor.submit(_check_tls_version, host, port))
+            futures.append(executor.submit(_check_cert_validity, host, port))
+
+        for future in as_completed(futures):
+            try:
+                findings.append(future.result())
+            except Exception as exc:
+                logger.error("Endpoint check failed: %s", exc)
+                findings.append(_finding(
+                    "NET-TLS-001", "Endpoint scan error",
+                    Status.ERROR, Severity.HIGH, "network:unknown",
+                    f"{type(exc).__name__}: {exc}",
+                ))
+
+    logger.info("Network scan complete: %d findings", len(findings))
     return findings
 
 
-def run_audit(args) -> list[Finding]:
-    endpoints = getattr(args, "endpoints", None)
-    if isinstance(endpoints, str):
-        endpoints = [e.strip() for e in endpoints.split(",") if e.strip()]
-    if not endpoints:
+def run_audit(args: Any) -> list[Finding]:
+    """Run the network/TLS audit.
+
+    Args:
+        args: CLI arguments namespace with 'endpoints' attribute.
+
+    Returns:
+        List of findings.
+    """
+    endpoints_raw = getattr(args, "endpoints", None)
+    if isinstance(endpoints_raw, str):
+        endpoints_raw = endpoints_raw.strip()
+
+    if not endpoints_raw:
         return [_finding(
             "NET-TLS-001", "No endpoints specified",
             Status.ERROR, Severity.HIGH, "network:config",
             "Provide --endpoints host:port[,host:port,...]",
             "Specify endpoints to scan.",
         )]
-    return scan_endpoints(endpoints, args)
+
+    # Validate all endpoints
+    try:
+        validated_endpoints = validate_endpoints(endpoints_raw)
+    except ValidationError as exc:
+        return [_finding(
+            "NET-TLS-001", "Endpoint validation failed",
+            Status.ERROR, Severity.HIGH, "network:config",
+            str(exc),
+            "Provide valid host:port endpoints.",
+        )]
+
+    return scan_endpoints(validated_endpoints, args)

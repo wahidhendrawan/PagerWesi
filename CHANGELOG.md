@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.10.0 - 2026-07-02
+
+- Added structured logging with JSON output, auto-redaction of secrets, and log rotation
+  (`--log-level`, `--log-json`, `--log-file`).
+- Added rate limiting with token-bucket algorithm and exponential backoff retry for API calls.
+- Added comprehensive input validation with SSRF protection on webhook URLs, path traversal
+  prevention, and hostname/port validation.
+- Added concurrent provider execution for the `all` command with error isolation.
+- Enhanced secrets scanner: 12 detection patterns (AWS keys, GitHub/GitLab tokens, JWTs,
+  database URLs, Azure/GCP credentials), configurable allowlist, severity per-pattern.
+- Enhanced agent mode: state history rotation, resolved findings tracking, structured logging,
+  minimum interval enforcement.
+- Enhanced webhooks: retry logic with backoff, Slack block formatting, Teams MessageCard,
+  PagerDuty severity escalation, payload size limits.
+- Enhanced network scanner: concurrent endpoint scanning, input validation, rate limiting.
+- Added 197 new tests (total: 214) covering secrets scanner, network scanner, webhooks,
+  terraform plan, compliance, policy, remediation, input validator, rate limiter, concurrent
+  runner, logging, agent, and dashboard generation.
+- All new code passes `ruff check`, `mypy`, and achieves 67% coverage.
+
 ## 0.9.0 - 2026-06-19
 
 - Completed the project rebrand to PagerWesi across the
