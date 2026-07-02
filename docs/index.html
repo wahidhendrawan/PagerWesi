@@ -52,6 +52,7 @@
             <span>Plan manifests</span>
             <span>AWS rollback</span>
             <span>SARIF/JSON</span>
+            <span>Secure logging</span>
             <span>Container image</span>
           </div>
         </div>
@@ -80,12 +81,12 @@ Summary: pass=18, fail=2, error=0, skip=0, manual=0</code></pre>
           <span>Modes: audit, plan, apply, rollback</span>
         </div>
         <div>
-          <strong>5</strong>
-          <span>Outputs: text, JSON, SARIF, manifests, container</span>
+          <strong>6</strong>
+          <span>Outputs: text, JSON, SARIF, HTML, manifests, container</span>
         </div>
         <div>
-          <strong>0</strong>
-          <span>Mutations during default audit</span>
+          <strong>214</strong>
+          <span>Tests with 67% code coverage</span>
         </div>
       </section>
 
@@ -140,6 +141,14 @@ Summary: pass=18, fail=2, error=0, skip=0, manual=0</code></pre>
             <p>
               A pre-built container image is published to GitHub Container Registry (GHCR) on
               every release. Run audits in CI/CD pipelines without installing Python dependencies.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Secure by design</h3>
+            <p>
+              Structured logging with automatic secret redaction, SSRF-protected webhook
+              notifications, input validation on all CLI data, rate-limited API calls with
+              exponential backoff retry, and concurrent provider execution with error isolation.
             </p>
           </article>
         </div>

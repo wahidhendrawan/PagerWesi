@@ -12,6 +12,27 @@ Source assets are in [docs/index.html](docs/index.html).
 For a short setup path, start with [docs/quickstart.md](docs/quickstart.md). Provider permission
 examples are in [docs/provider-permissions.md](docs/provider-permissions.md).
 
+## What's New in v0.10.0
+
+- **Structured Logging** — JSON and text log output with auto-redaction of secrets (AWS keys,
+  Bearer tokens, passwords). Configurable via `--log-level`, `--log-json`, `--log-file` CLI flags
+  or `PAGERWESI_LOG_LEVEL`/`PAGERWESI_LOG_JSON`/`PAGERWESI_LOG_FILE` environment variables.
+- **Rate Limiting & Retry** — Exponential backoff retry for API calls with token-bucket rate
+  limiting to prevent cloud provider throttling.
+- **Input Validation & SSRF Protection** — All user inputs (endpoints, paths, webhook URLs) are
+  validated. Webhook URLs enforce HTTPS-only and reject private/loopback IPs.
+- **Concurrent Provider Execution** — The `all` command runs providers in parallel using
+  thread-safe concurrent execution with error isolation.
+- **Enhanced Secrets Scanner** — 12 detection patterns (up from 3) including GitHub/GitLab tokens,
+  JWTs, database URLs, Azure connection strings, and GCP service account keys. Configurable
+  allowlist to reduce false positives.
+- **Agent Mode Improvements** — State history rotation, resolved findings tracking, structured
+  logging, and minimum interval enforcement.
+- **Comprehensive Test Suite** — 214 tests covering all modules with 67% code coverage.
+  New test files for secrets scanner, network scanner, webhooks, terraform plan, compliance,
+  policy, remediation, input validator, rate limiter, concurrent runner, logging, agent, and
+  dashboard generation.
+
 ## Capabilities
 
 | Target | Audit | Plan | Apply | Machine output |
@@ -297,6 +318,29 @@ pagerwesi aws --agent --interval 300 --watch-providers aws,azure,gcp,k8s \
 
 Provider runtime failures are emitted as `AGENT-PROVIDER-001` error findings instead of being
 silently ignored.
+
+## Secure Coding & Logging
+
+PagerWesi v0.10 integrates defense-in-depth secure coding practices:
+
+```bash
+# Structured JSON logging (SIEM-ready)
+pagerwesi aws --log-level debug --log-json --log-file audit.log
+
+# Environment variable configuration
+export PAGERWESI_LOG_LEVEL=INFO
+export PAGERWESI_LOG_JSON=true
+export PAGERWESI_LOG_FILE=/var/log/pagerwesi/audit.log
+```
+
+Security features include:
+- **Secret auto-redaction** in all log output (AWS keys, passwords, Bearer tokens)
+- **SSRF protection** on webhook URLs (rejects private IPs, enforces HTTPS)
+- **Input validation** on all CLI inputs (paths, endpoints, hostnames, ports)
+- **Rate limiting** for cloud API calls with exponential backoff retry
+- **Payload size limits** on webhook notifications and manifest files
+- **Path traversal prevention** with null byte detection and symlink controls
+- **HTML entity escaping** in dashboard reports (XSS prevention)
 
 ## Development
 

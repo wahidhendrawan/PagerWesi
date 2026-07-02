@@ -114,7 +114,7 @@ def test_sarif_enriched_with_control_metadata():
     render_sarif([finding], stream)
     sarif = json.loads(stream.getvalue())
     driver = sarif["runs"][0]["tool"]["driver"]
-    assert driver["version"] == "0.9.0"
+    assert driver["version"] == __version__
     rule = driver["rules"][0]
     assert rule["helpUri"].startswith("https://")
     assert "tags" in rule["properties"]
