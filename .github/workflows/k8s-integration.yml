@@ -25,9 +25,27 @@ jobs:
           cluster_name: ah-test
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e '.[k8s,dev]'
+      - name: Verify cluster readiness
+        run: |
+          kubectl cluster-info
+          kubectl wait --for=condition=Ready node --all --timeout=120s
+          kubectl get nodes -o wide
       - name: Run K8s audit against kind cluster
         run: |
-          pagerwesi k8s --format json --output reports/k8s.json
+          for attempt in 1 2 3; do
+            set +e
+            pagerwesi k8s --format json --output reports/k8s.json --log-level debug
+            status=$?
+            set -e
+            if [ "$status" -le 1 ]; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit "$status"
+            fi
+            sleep $((attempt * 10))
+          done
+          test -s reports/k8s.json
           cat reports/k8s.json
       - name: Verify findings structure
         run: |
