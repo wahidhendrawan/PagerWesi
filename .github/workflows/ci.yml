@@ -45,7 +45,14 @@ jobs:
       - run: git diff --exit-code docs/controls.md docs/compliance-mapping.json
       - name: Test with coverage (Python 3.12)
         if: matrix.python-version == '3.12'
-        run: pytest --cov=cloud --cov-report=term-missing
+        run: pytest --cov=cloud --cov-report=term-missing --cov-report=xml
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.12'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          fail_ci_if_error: false
       - name: Test without coverage (other versions)
         if: matrix.python-version != '3.12'
         run: pytest
