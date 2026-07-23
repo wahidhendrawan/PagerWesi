@@ -1,9 +1,28 @@
-# PagerWesi
+[![CI](https://github.com/wahidhendrawan/PagerWesi/actions/workflows/ci.yml/badge.svg)](https://github.com/wahidhendrawan/PagerWesi/actions/workflows/ci.yml)
+
+# PagerWesi 🛡️
+
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL-3.0-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/badge/release-v0.10.0-green.svg)](https://github.com/wahidhendrawan/PagerWesi/releases)
+[![CI](https://github.com/wahidhendrawan/PagerWesi/actions/workflows/ci.yml/badge.svg)](https://github.com/wahidhendrawan/PagerWesi/actions)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](Dockerfile)
+[![CIS Compliance](https://img.shields.io/badge/CIS%20Compliance-SOC2%2FPCI--DSS-0052CC)](docs/)
+[![HTML Reports](https://img.shields.io/badge/reports-HTML%20%7C%20JSON%20%7C%20Console-brightgreen)](cloud/html_report.py)
+[![Pages](https://img.shields.io/badge/docs-🌐-orange.svg)](https://wahidhendrawan.github.io/PagerWesi/)
+[![Last Commit](https://img.shields.io/github/last-commit/wahidhendrawan/PagerWesi)](https://github.com/wahidhendrawan/PagerWesi/commits/main)
 
 Security baseline auditing and controlled remediation for operating systems, cloud providers,
 Kubernetes, Docker, Terraform plans, source trees, and network/TLS endpoints. Every entry point
 defaults to **audit-only** behavior. Review findings and test changes in a disposable environment
 before using apply mode.
+
+| Capability | Description |
+|---|---|
+| **HTML Reports** | Self-contained HTML dashboard with severity charts, finding tables, and download support |
+| **CIS Compliance** | Score findings against SOC2, PCI-DSS, and custom control frameworks |
+| **Multi-Provider** | AWS, Azure, GCP, Kubernetes, Docker, Terraform, OS baselines, network, TLS, secrets scanning |
+| **Audit + Remediate** | Audit-only mode (safe) or controlled remediation with rollback support |
 
 Promotional website and documentation are published at
 **<https://wahidhendrawan.github.io/PagerWesi/>** via the included GitHub Pages workflow.
