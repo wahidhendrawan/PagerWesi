@@ -1,0 +1,47 @@
+name: 'PagerWesi Audit'
+description: 'Run PagerWesi security baseline audit on your infrastructure and post results as a PR comment'
+author: 'Wahid Hendrawan'
+branding:
+  icon: 'shield'
+  color: 'green'
+inputs:
+  target:
+    description: 'Target to audit (local, aws, azure, gcp, k8s, docker, terraform)'
+    required: true
+    default: 'local'
+  format:
+    description: 'Output format (console, json, html)'
+    required: false
+    default: 'console'
+  log-level:
+    description: 'Log level (info, debug)'
+    required: false
+    default: 'info'
+runs:
+  using: 'composite'
+  steps:
+    - name: Install PagerWesi
+      run: pip install pagerwesi
+      shell: bash
+    - name: Run Audit
+      run: pagerwesi audit --target ${{ inputs.target }} --log-level ${{ inputs.log-level }}
+      shell: bash
+    - name: Upload Results
+      if: inputs.format == 'html'
+      uses: actions/upload-artifact@v4
+      with:
+        name: pagerwesi-audit-report
+        path: pagerwesi-report.html
+    - name: Comment PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const body = fs.readFileSync('pagerwesi-report.txt', 'utf8');
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '## 🔒 PagerWesi Audit Results\n```\n' + body.slice(0, 30000) + '\n```'
+          });
