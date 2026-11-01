@@ -3,13 +3,24 @@ on:
   pull_request:
     types: [opened, synchronize]
 
+permissions:
+  contents: read
+
 jobs:
+  # Exercises the published composite action (action/action.yml) with a provider
+  # that needs no cloud credentials.
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run PagerWesi Audit
-        uses: ./
+        id: pagerwesi
+        uses: ./action
         with:
-          target: local
-          format: html
+          provider: secrets
+          path: action
+          format: json
+      - name: Check the action wrote its report
+        env:
+          REPORT: ${{ steps.pagerwesi.outputs.report }}
+        run: python3 -c 'import json, sys; json.load(open(sys.argv[1]))' "$REPORT"

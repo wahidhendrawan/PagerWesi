@@ -1,10 +1,9 @@
-[![CI](https://github.com/wahidhendrawan/PagerWesi/actions/workflows/ci.yml/badge.svg)](https://github.com/wahidhendrawan/PagerWesi/actions/workflows/ci.yml)
-
 # PagerWesi 🛡️
 
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL-3.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/release-v0.10.0-green.svg)](https://github.com/wahidhendrawan/PagerWesi/releases)
-[![CI](https://github.com/wahidhendrawan/PagerWesi/actions/workflows/ci.yml/badge.svg)](https://github.com/wahidhendrawan/PagerWesi/actions)
+[![CI](https://github.com/wahidhendrawan/PagerWesi/actions/workflows/ci.yml/badge.svg)](https://github.com/wahidhendrawan/PagerWesi/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/wahidhendrawan/PagerWesi?sort=semver)](https://github.com/wahidhendrawan/PagerWesi/releases/latest)
+[![License](https://img.shields.io/github/license/wahidhendrawan/PagerWesi)](LICENSE)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/wahidhendrawan/PagerWesi/badge)](https://scorecard.dev/viewer/?uri=github.com/wahidhendrawan/PagerWesi)
 [![Coverage](https://codecov.io/gh/wahidhendrawan/PagerWesi/branch/main/graph/badge.svg)](https://codecov.io/gh/wahidhendrawan/PagerWesi)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](Dockerfile)
@@ -179,6 +178,23 @@ docker run --rm \
   aws --format sarif --output /dev/stdout
 ```
 
+## GitHub Action
+
+The composite action installs the CLI from its own ref, runs one provider, and uploads the
+report as the `pagerwesi-audit-report` artifact. On pull requests, `text` reports are also
+posted as a comment when the token can write to pull requests.
+
+```yaml
+- uses: wahidhendrawan/PagerWesi/action@main  # or a release tag newer than v0.10.1
+  with:
+    provider: secrets   # aws, azure, gcp, k8s, docker, secrets, terraform, network, all
+    path: src           # secrets/terraform only
+    format: text        # text, json, sarif, html
+```
+
+Cloud providers read credentials from the job environment, as the CLI does. The step fails when
+the audit reports failed controls.
+
 ## Kubernetes
 
 ```bash
@@ -301,6 +317,12 @@ controls:
 pagerwesi aws --custom-controls my-controls.yml
 ```
 
+> **Security:** each `check` is a command that PagerWesi runs with the auditor's privileges and
+> cloud credentials. Running it without a shell does not make it safe: `check: "bash -c '...'"`
+> runs anything. Treat a custom-controls file like code. In CI, load it only from a trusted
+> branch or path. Never pass `--custom-controls` a file that an untrusted pull request can add
+> or change, such as a file in a fork's checkout under `pull_request_target`.
+
 ## Remediation Playbooks
 
 Generate Terraform or CloudFormation from plan manifests:
@@ -391,3 +413,11 @@ informative and do not constitute certification.
 - Treat generated reports as sensitive because they contain resource identifiers and posture data.
 
 This project is provided under the GPL-3.0 license without warranty.
+
+## Security
+
+Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), not in a public issue.
+
+## License
+
+GPL-3.0. See [LICENSE](LICENSE).
