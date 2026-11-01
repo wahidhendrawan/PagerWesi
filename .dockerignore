@@ -9,3 +9,10 @@ dist
 *.egg-info
 __pycache__
 *.pyc
+.vscode
+coverage.xml
+.coverage
+htmlcov
+reports
+tests
+docs

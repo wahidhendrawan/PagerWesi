@@ -1,47 +1,86 @@
 name: 'PagerWesi Audit'
-description: 'Run PagerWesi security baseline audit on your infrastructure and post results as a PR comment'
+description: 'Run a PagerWesi security baseline audit, upload the report, and post text reports as a PR comment'
 author: 'Wahid Hendrawan'
 branding:
   icon: 'shield'
   color: 'green'
 inputs:
-  target:
-    description: 'Target to audit (local, aws, azure, gcp, k8s, docker, terraform)'
+  provider:
+    description: 'Provider to audit (aws, azure, gcp, k8s, docker, secrets, terraform, network, all)'
     required: true
-    default: 'local'
-  format:
-    description: 'Output format (console, json, html)'
+  path:
+    description: 'Path to scan (secrets, terraform)'
     required: false
-    default: 'console'
+    default: ''
+  endpoints:
+    description: 'Comma-separated host:port list (network)'
+    required: false
+    default: ''
+  format:
+    description: 'Report format (text, json, sarif, html)'
+    required: false
+    default: 'text'
   log-level:
-    description: 'Log level (info, debug)'
+    description: 'Log level (debug, info, warning, error)'
     required: false
     default: 'info'
+outputs:
+  report:
+    description: 'Path of the written report'
+    value: ${{ steps.audit.outputs.report }}
 runs:
   using: 'composite'
   steps:
+    # Inputs reach the shell only through env, never through ${{ }} inside run:.
     - name: Install PagerWesi
-      run: pip install pagerwesi
       shell: bash
-    - name: Run Audit
-      run: pagerwesi audit --target ${{ inputs.target }} --log-level ${{ inputs.log-level }}
+      env:
+        PROVIDER: ${{ inputs.provider }}
+      run: |
+        # Install from this action's own ref so the CLI always matches the action version.
+        case "$PROVIDER" in
+          aws|azure|gcp|k8s) extras="[$PROVIDER]" ;;
+          all) extras="[aws,azure,gcp,k8s]" ;;
+          *) extras="" ;;
+        esac
+        python3 -m venv "$RUNNER_TEMP/pagerwesi"
+        "$RUNNER_TEMP/pagerwesi/bin/python" -m pip install --quiet "$GITHUB_ACTION_PATH/..$extras"
+    - name: Run audit
+      id: audit
       shell: bash
-    - name: Upload Results
-      if: inputs.format == 'html'
-      uses: actions/upload-artifact@v4
+      env:
+        PROVIDER: ${{ inputs.provider }}
+        SCAN_PATH: ${{ inputs.path }}
+        ENDPOINTS: ${{ inputs.endpoints }}
+        FORMAT: ${{ inputs.format }}
+        LOG_LEVEL: ${{ inputs.log-level }}
+      run: |
+        case "$FORMAT" in
+          text) report=pagerwesi-report.txt ;;
+          json|sarif|html) report="pagerwesi-report.$FORMAT" ;;
+          *) echo "::error::unsupported format: $FORMAT"; exit 2 ;;
+        esac
+        echo "report=$report" >> "$GITHUB_OUTPUT"
+        args=("$PROVIDER" --format "$FORMAT" --output "$report" --log-level "$LOG_LEVEL")
+        if [ -n "$SCAN_PATH" ]; then args+=(--path "$SCAN_PATH"); fi
+        if [ -n "$ENDPOINTS" ]; then args+=(--endpoints "$ENDPOINTS"); fi
+        "$RUNNER_TEMP/pagerwesi/bin/pagerwesi" "${args[@]}"
+    - name: Upload report
+      if: ${{ !cancelled() && steps.audit.outputs.report != '' }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: pagerwesi-audit-report
-        path: pagerwesi-report.html
+        path: ${{ steps.audit.outputs.report }}
     - name: Comment PR
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          const body = fs.readFileSync('pagerwesi-report.txt', 'utf8');
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: '## 🔒 PagerWesi Audit Results\n```\n' + body.slice(0, 30000) + '\n```'
-          });
+      if: ${{ !cancelled() && github.event_name == 'pull_request' && inputs.format == 'text' && steps.audit.outputs.report != '' }}
+      # Fork and Dependabot PRs get a read-only token; the audit result still stands.
+      continue-on-error: true
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPORT: ${{ steps.audit.outputs.report }}
+      run: |
+        body="$RUNNER_TEMP/pagerwesi-comment.md"
+        { echo '## 🔒 PagerWesi Audit Results'; echo '```'; head -c 30000 "$REPORT"; echo; echo '```'; } > "$body"
+        gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$body"

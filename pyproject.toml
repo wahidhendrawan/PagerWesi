@@ -74,5 +74,11 @@ source = ["cloud"]
 fail_under = 60
 
 [[tool.mypy.overrides]]
-module = ["azure.mgmt.*", "boto3", "boto3.*", "google.cloud.*", "yaml", "jsonschema", "kubernetes", "kubernetes.*"]
+module = ["azure.mgmt.*", "boto3", "boto3.*", "google.cloud.*", "yaml", "jsonschema"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# kubernetes>=37 ships Optional-everywhere type hints; keep treating the client as untyped.
+module = ["kubernetes", "kubernetes.*"]
+ignore_missing_imports = true
+follow_imports = "skip"

@@ -1,70 +1,35 @@
 # Security Policy
 
-PagerWesi audits sensitive infrastructure and performs controlled remediation, so security
-vulnerabilities are handled with priority. Reports from the community are welcomed and treated
-confidentially.
+## Supported versions
 
-## Supported Versions
+Only the latest release of PagerWesi gets security fixes. Please check that the problem still exists there before reporting.
 
-Security updates are provided for the latest minor release. Older releases may receive fixes at the
-maintainers' discretion.
+## Reporting a vulnerability
 
-| Version   | Supported          |
-| --------- | ------------------ |
-| 0.10.x    | :white_check_mark: |
-| < 0.10    | :x:                |
+Report privately through GitHub: **Security → Report a vulnerability** on this repository ([direct link](https://github.com/wahidhendrawan/PagerWesi/security/advisories/new)). Do not open a public issue, discussion or pull request, and do not post exploit details or credentials anywhere public.
 
-## Reporting a Vulnerability
+Please include:
 
-Do not open a public issue, discussion, or pull request for a suspected vulnerability. Do not post
-findings, exploit steps, or affected credentials in a public channel.
+- the version or commit you tested, platform, and the provider or mode you ran (audit, plan, apply, rollback)
+- the smallest steps or input that reproduce the problem
+- what an attacker gains (data exposure, code execution, privilege escalation, denial of service, …)
 
-Report privately using one of the following:
+Remove real credentials, customer data and sensitive logs from any evidence you share.
 
-1. **Preferred** — GitHub Private Vulnerability Reporting: open a report from the repository's
-   Security tab (<https://github.com/wahidhendrawan/PagerWesi/security/advisories/new>).
-2. Contact the repository owner privately through their verified GitHub profile if private
-   reporting is unavailable.
+You should get a first reply within 7 days. Fixed issues are credited in the release notes unless you ask otherwise.
 
-Please include, when possible:
+## In scope
 
-- Affected control, module, or workflow.
-- Platform, PagerWesi version, and dependency versions used to reproduce.
-- Minimal reproduction steps and expected vs. observed behavior.
-- Impact assessment (privilege escalation, credential exposure, unsafe remediation, denial of
-  service, data exposure, supply chain risk).
-- Suggested mitigation or patch if available.
+- Source code in this repository (`cloud/`, OS harden scripts, workflows, the GitHub Action)
+- Published container image `ghcr.io/wahidhendrawan/pagerwesi`
+- Remediation that weakens a system or leaks credentials, and documented CLI, agent and webhook behaviour
 
-Do not include production credentials, real customer data, or sensitive posture reports.
-Sanitize evidence before sharing.
+## Out of scope
 
-## Response Expectations
+- Vulnerabilities in the cloud services being audited: report them to that provider
+- Commands you put in a custom-controls file: they run by design, so only trusted people may supply that file
+- Running apply mode with intentionally over-privileged credentials
 
-- **Acknowledgement:** within 3 business days.
-- **Initial assessment:** within 7 business days.
-- **Fix or mitigation timeline:** depends on severity, typically 14 to 60 days.
-- **Coordinated disclosure:** we work with reporters on a disclosure date once a fix is available.
+## Safe harbor
 
-Critical issues affecting active exploitation, remediation safety, or credential exposure are
-prioritized above the standard timeline.
-
-## Scope
-
-In scope:
-
-- Source code in this repository (`cloud/`, OS harden scripts, workflows, action).
-- Published container image `ghcr.io/wahidhendrawan/pagerwesi`.
-- Documented CLI, agent, and webhook behavior.
-
-Out of scope:
-
-- Vulnerabilities in third-party cloud services being audited (report to that provider).
-- Findings that require the operator to run apply mode with intentionally over-privileged
-  credentials.
-- Denial-of-service tests against public infrastructure not owned by the reporter.
-
-## Safe Harbor
-
-Good-faith security research performed under this policy will not be pursued as a policy or
-license violation. Follow responsible disclosure, do not access data beyond what is required to
-demonstrate the issue, and do not degrade the service for other users.
+Good-faith research that follows this policy will not be treated as a violation of the license or of this policy. Only test against your own deployment, access no more data than needed to show the issue, and do not degrade services for other people.
