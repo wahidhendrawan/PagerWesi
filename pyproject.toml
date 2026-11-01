@@ -41,7 +41,7 @@ dev = [
     "pytest-cov>=5,<8",
     "ruff>=0.5,<1",
 ]
-k8s = ["kubernetes>=29,<37"]
+k8s = ["kubernetes>=29,<38"]
 
 [project.scripts]
 pagerwesi = "cloud.main:main"
