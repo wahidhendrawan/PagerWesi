@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- `linux/harden.sh` and `macos/harden.sh` accept `--output FINDINGS.json` and write their findings
+  in the same JSON shape as `windows/harden.ps1 -OutputPath` (control_id, title, status, severity,
+  resource, evidence, remediation).
+- Added `pagerwesi report --input FINDINGS.json --format text|json|sarif|html` to render a saved
+  findings file (an OS script output or a `--format json` report) with the cloud renderers.
+
 ## 0.10.1 - 2026-08-01
 
 - Added `docs/architecture.md` documenting CLI structure, provider architecture,
