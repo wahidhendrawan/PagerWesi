@@ -56,8 +56,8 @@ examples are in [docs/provider-permissions.md](docs/provider-permissions.md).
 
 | Target | Audit | Plan | Apply | Machine output |
 |---|---:|---:|---:|---:|
-| Linux | Yes | Yes | Yes | Text |
-| macOS | Yes | Yes | Yes | Text |
+| Linux | Yes | Yes | Yes | Text, JSON |
+| macOS | Yes | Yes | Yes | Text, JSON |
 | Windows | Yes | Yes | Yes | JSON |
 | FreeBSD | Yes | Yes | Yes | Text |
 | Alpine/Container | Yes | Yes | Limited | Text |
@@ -272,6 +272,8 @@ Audit is always the default:
 
 ```bash
 sudo bash linux/harden.sh --mode audit
+sudo bash linux/harden.sh --mode audit --output findings.json   # same JSON shape as windows/harden.ps1 -OutputPath
+pagerwesi report --input findings.json --format html --output findings.html   # render OS findings like cloud ones
 sudo bash linux/harden.sh --mode plan
 sudo bash linux/harden.sh --mode apply
 

@@ -15,6 +15,7 @@ from cloud.core import (
     Finding,
     change_manifest,
     exit_code,
+    load_findings,
     plan_manifest,
     render_json,
     render_sarif,
@@ -36,8 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
         "provider",
         choices=[
             "aws", "azure", "gcp", "k8s", "docker",
-            "secrets", "terraform", "network", "all", "policy",
+            "secrets", "terraform", "network", "all", "policy", "report",
         ],
+    )
+    parser.add_argument(
+        "--input", type=Path,
+        help="Findings JSON for 'report': a --format json report or an OS script --output file",
     )
     parser.add_argument("policy_action", nargs="?", choices=["validate"])
     parser.add_argument("--mode", choices=["audit", "plan", "apply", "rollback"], default="audit")
@@ -180,6 +185,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.policy_action:
         print("[x] policy subcommands are only valid with provider 'policy'", file=sys.stderr)
         return 2
+    if args.provider == "report":
+        if not args.input:
+            print(
+                "[x] usage: pagerwesi report --input FINDINGS.json [--format html] [--output FILE]",
+                file=sys.stderr,
+            )
+            return 2
+        try:
+            saved = load_findings(args.input)
+        except (OSError, ValueError) as exc:
+            print(f"[x] cannot load findings: {exc}", file=sys.stderr)
+            return 2
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            with args.output.open("w", encoding="utf-8") as stream:
+                write_report(saved, args.format, stream)
+        else:
+            write_report(saved, args.format, sys.stdout)
+        return exit_code(saved)
     if args.agent:
         from cloud.agent import run_agent
         return run_agent(args)
