@@ -2,11 +2,12 @@
 set -Eeuo pipefail
 
 MODE="audit"
+OUTPUT=""
 BACKUP_ROOT="/var/backups/pagerwesi"
 ALLOW_SSH="${ALLOW_SSH:-OpenSSH}"
 
 usage() {
-  echo "Usage: $0 [--mode audit|plan|apply] [--rollback BACKUP_DIR]"
+  echo "Usage: $0 [--mode audit|plan|apply] [--rollback BACKUP_DIR] [--output FINDINGS.json]"
 }
 
 log() { printf '[%s] %s\n' "$1" "$2"; }
@@ -44,6 +45,7 @@ while (($#)); do
   case "$1" in
     --mode) MODE=${2:-}; shift 2 ;;
     --rollback) ROLLBACK=${2:-}; shift 2 ;;
+    --output) OUTPUT=${2:-}; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) usage; exit 2 ;;
   esac
@@ -56,33 +58,65 @@ if [[ "$MODE" == "apply" && $EUID -ne 0 ]]; then
 fi
 
 failures=0
+EVIDENCE=""
+findings=()
+json_str() {  # shortcut: escapes quotes, backslashes and line breaks only; these strings never carry other control characters
+  local s=${1//\\/\\\\}; s=${s//\"/\\\"}; s=${s//$'\n'/ }; s=${s//$'\r'/}; s=${s//$'\t'/ }
+  printf '%s' "$s"
+}
+record() {  # control_id title status severity evidence remediation (same shape as windows/harden.ps1 -OutputPath)
+  findings+=("$(printf '  {"control_id": "%s", "title": "%s", "status": "%s", "severity": "%s", "resource": "host:%s", "evidence": "%s", "remediation": "%s"}' \
+    "$(json_str "$1")" "$(json_str "$2")" "$3" "$4" "$(json_str "$(hostname)")" "$(json_str "$5")" "$(json_str "$6")")")
+}
+write_findings() {
+  [[ -n "$OUTPUT" ]] || return 0
+  {
+    printf '[\n'
+    local i
+    for i in "${!findings[@]}"; do
+      if (( i > 0 )); then printf ',\n'; fi
+      printf '%s' "${findings[$i]}"
+    done
+    printf '\n]\n'
+  } > "$OUTPUT"
+}
 check() {
-  local id=$1 title=$2; shift 2
-  if "$@"; then log PASS "$id $title"; else log FAIL "$id $title"; failures=$((failures + 1)); fi
+  local id=$1 title=$2 severity=$3 remediation=$4; shift 4
+  EVIDENCE=""
+  if "$@"; then
+    log PASS "$id $title"; record "$id" "$title" pass "$severity" "$EVIDENCE" "$remediation"
+  else
+    log FAIL "$id $title"; record "$id" "$title" fail "$severity" "$EVIDENCE" "$remediation"; failures=$((failures + 1))
+  fi
+}
+skip() {
+  local id=$1 title=$2 severity=$3 reason=$4
+  log SKIP "$id $reason"; record "$id" "$title" skip "$severity" "$reason" ""
 }
 
 sshd_value() { sshd -T 2>/dev/null | awk -v key="$1" '$1 == key {print $2; exit}'; }
-check_root_login() { [[ "$(sshd_value permitrootlogin)" == "no" ]]; }
-check_empty_passwords() { [[ "$(sshd_value permitemptypasswords)" == "no" ]]; }
+check_root_login() { local v; v=$(sshd_value permitrootlogin || true); EVIDENCE="permitrootlogin=${v:-unknown}"; [[ "$v" == "no" ]]; }
+check_empty_passwords() { local v; v=$(sshd_value permitemptypasswords || true); EVIDENCE="permitemptypasswords=${v:-unknown}"; [[ "$v" == "no" ]]; }
 check_firewall() {
-  if command -v ufw >/dev/null; then ufw status 2>/dev/null | grep -q '^Status: active';
-  elif command -v firewall-cmd >/dev/null; then firewall-cmd --state 2>/dev/null | grep -q running;
-  else return 1; fi
+  if command -v ufw >/dev/null; then EVIDENCE="ufw"; ufw status 2>/dev/null | grep -q '^Status: active';
+  elif command -v firewall-cmd >/dev/null; then EVIDENCE="firewalld"; firewall-cmd --state 2>/dev/null | grep -q running;
+  else EVIDENCE="no supported firewall installed"; return 1; fi
 }
 check_updates() {
-  if command -v apt-get >/dev/null; then [[ -z "$(apt-get -s upgrade 2>/dev/null | awk '/^Inst / {print; exit}')" ]];
-  elif command -v dnf >/dev/null; then dnf -q check-update >/dev/null 2>&1;
-  else return 0; fi
+  if command -v apt-get >/dev/null; then EVIDENCE="apt-get -s upgrade"; [[ -z "$(apt-get -s upgrade 2>/dev/null | awk '/^Inst / {print; exit}')" ]];
+  elif command -v dnf >/dev/null; then EVIDENCE="dnf check-update"; dnf -q check-update >/dev/null 2>&1;
+  else EVIDENCE="no supported package manager"; return 0; fi
 }
 
-check LINUX-FW-001 "Host firewall is active" check_firewall
+check LINUX-FW-001 "Host firewall is active" high "Enable ufw or firewalld and allow only required services." check_firewall
 if command -v sshd >/dev/null; then
-  check LINUX-SSH-001 "SSH root login is disabled" check_root_login
-  check LINUX-SSH-002 "SSH empty passwords are disabled" check_empty_passwords
+  check LINUX-SSH-001 "SSH root login is disabled" high "Set PermitRootLogin no in /etc/ssh/sshd_config." check_root_login
+  check LINUX-SSH-002 "SSH empty passwords are disabled" critical "Set PermitEmptyPasswords no in /etc/ssh/sshd_config." check_empty_passwords
 else
-  log SKIP "LINUX-SSH SSH server is not installed"
+  skip LINUX-SSH-001 "SSH root login is disabled" high "SSH server is not installed"
+  skip LINUX-SSH-002 "SSH empty passwords are disabled" critical "SSH server is not installed"
 fi
-check LINUX-PATCH-001 "No package upgrades are pending" check_updates
+check LINUX-PATCH-001 "No package upgrades are pending" medium "Apply pending package upgrades." check_updates
 
 if [[ "$MODE" != "audit" ]]; then
   timestamp=$(date -u +%Y%m%dT%H%M%SZ)
@@ -133,4 +167,5 @@ if [[ "$MODE" != "audit" ]]; then
   fi
 fi
 
+write_findings
 ((failures == 0)) || exit 1

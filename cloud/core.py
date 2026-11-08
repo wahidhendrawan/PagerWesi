@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from collections.abc import Iterable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from datetime import datetime, timezone
 from enum import Enum
 from typing import TextIO
@@ -48,6 +48,30 @@ class Finding:
         data["status"] = self.status.value
         data["severity"] = self.severity.value
         return data
+
+
+def load_findings(path: str | os.PathLike[str]) -> list[Finding]:
+    """Findings from a JSON report (`--format json`) or an OS script `--output` file (a bare list)."""
+    with open(path, encoding="utf-8") as stream:
+        data = json.load(stream)
+    items = data.get("findings") if isinstance(data, dict) else data
+    if not isinstance(items, list):
+        raise ValueError("expected a list of findings or an object with a 'findings' list")
+    known = {field.name for field in fields(Finding)}
+    findings: list[Finding] = []
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise ValueError(f"finding {index} is not an object")
+        values = {key: value for key, value in item.items() if key in known}
+        values.setdefault("resource", "unknown")
+        values.setdefault("evidence", "")
+        try:
+            values["status"] = Status(str(values.get("status", "")).lower())
+            values["severity"] = Severity(str(values.get("severity", "")).lower())
+            findings.append(Finding(**values))
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"finding {index}: {exc}") from exc
+    return findings
 
 
 def summarize(findings: Iterable[Finding]) -> dict[str, int]:
