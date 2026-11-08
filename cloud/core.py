@@ -51,7 +51,7 @@ class Finding:
 
 
 def load_findings(path: str | os.PathLike[str]) -> list[Finding]:
-    """Findings from a JSON report (`--format json`) or an OS script `--output` file (a bare list)."""
+    """Findings from a `--format json` report or an OS script `--output` file (a bare list)."""
     with open(path, encoding="utf-8") as stream:
         data = json.load(stream)
     items = data.get("findings") if isinstance(data, dict) else data

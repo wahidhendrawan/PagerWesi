@@ -42,7 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--input", type=Path,
-        help="Findings JSON to render with 'report' (a --format json report or an OS script --output file)",
+        help="Findings JSON for 'report': a --format json report or an OS script --output file",
     )
     parser.add_argument("policy_action", nargs="?", choices=["validate"])
     parser.add_argument("--mode", choices=["audit", "plan", "apply", "rollback"], default="audit")
@@ -187,7 +187,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     if args.provider == "report":
         if not args.input:
-            print("[x] usage: pagerwesi report --input FINDINGS.json [--format html] [--output FILE]", file=sys.stderr)
+            print(
+                "[x] usage: pagerwesi report --input FINDINGS.json [--format html] [--output FILE]",
+                file=sys.stderr,
+            )
             return 2
         try:
             findings = load_findings(args.input)

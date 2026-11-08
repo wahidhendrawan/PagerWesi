@@ -212,10 +212,24 @@ def test_agent_mode_returns_agent_exit_code():
 
 def test_report_renders_os_script_findings(tmp_path, capsys):
     os_findings = [
-        {"control_id": "LINUX-FW-001", "title": "Host firewall is active", "status": "fail", "severity": "high",
-         "resource": "host:web1", "evidence": "no supported firewall installed", "remediation": "Enable ufw."},
-        {"control_id": "LINUX-SSH-001", "title": "SSH root login is disabled", "status": "skip", "severity": "high",
-         "resource": "host:web1", "evidence": "SSH server is not installed", "remediation": ""},
+        {
+            "control_id": "LINUX-FW-001",
+            "title": "Host firewall is active",
+            "status": "fail",
+            "severity": "high",
+            "resource": "host:web1",
+            "evidence": "no supported firewall installed",
+            "remediation": "Enable ufw.",
+        },
+        {
+            "control_id": "LINUX-SSH-001",
+            "title": "SSH root login is disabled",
+            "status": "skip",
+            "severity": "high",
+            "resource": "host:web1",
+            "evidence": "SSH server is not installed",
+            "remediation": "",
+        },
     ]
     src = tmp_path / "findings.json"
     src.write_text(json.dumps(os_findings), encoding="utf-8")
@@ -241,7 +255,10 @@ def test_report_accepts_its_own_json_report(tmp_path, capsys):
 def test_report_rejects_missing_or_invalid_input(tmp_path, capsys):
     assert main(["report"]) == 2
     bad = tmp_path / "bad.json"
-    bad.write_text('[{"control_id": "X-1", "title": "t", "status": "bogus", "severity": "high"}]', encoding="utf-8")
+    bad.write_text(
+        '[{"control_id": "X-1", "title": "t", "status": "bogus", "severity": "high"}]',
+        encoding="utf-8",
+    )
     assert main(["report", "--input", str(bad)]) == 2
     assert "finding 0" in capsys.readouterr().err
     bad.write_text('{"nope": 1}', encoding="utf-8")
