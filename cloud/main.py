@@ -193,17 +193,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             return 2
         try:
-            findings = load_findings(args.input)
+            saved = load_findings(args.input)
         except (OSError, ValueError) as exc:
             print(f"[x] cannot load findings: {exc}", file=sys.stderr)
             return 2
         if args.output:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             with args.output.open("w", encoding="utf-8") as stream:
-                write_report(findings, args.format, stream)
+                write_report(saved, args.format, stream)
         else:
-            write_report(findings, args.format, sys.stdout)
-        return exit_code(findings)
+            write_report(saved, args.format, sys.stdout)
+        return exit_code(saved)
     if args.agent:
         from cloud.agent import run_agent
         return run_agent(args)
